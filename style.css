@@ -1,0 +1,125 @@
+/* http://meyerweb.com/eric/tools/css/reset/
+   v2.0 | 20110126
+   License: none (public domain)
+*/
+@import url("//hello.myfonts.net/count/35c931");
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed,
+figure, figcaption, footer, header, hgroup,
+main, menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 100%;
+  font: inherit;
+  vertical-align: baseline; }
+
+/* HTML5 display-role reset for older browsers */
+article, aside, details, figcaption, figure,
+footer, header, hgroup, main, menu, nav, section {
+  display: block; }
+
+body {
+  line-height: 1; }
+
+ol, ul {
+  list-style: none; }
+
+blockquote, q {
+  quotes: none; }
+  blockquote:before, blockquote:after, q:before, q:after {
+    content: '';
+    content: none; }
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0; }
+
+@font-face {
+  font-family: "Authentic";
+  src: url(./fonts/AUTHENTIC-Sans.otf); }
+
+@font-face {
+  font-family: "WilhelmKlingsporGotLTStd";
+  src: url(./fonts/35C931_0_0.ttf); }
+
+html {
+  font-family: Authentic, sans-serif;
+  font-size: 14px; }
+  @media (min-width: 415px) {
+    html {
+      font-size: 16px; } }
+  @media (min-width: 769px) {
+    html {
+      font-size: 18px; } }
+
+body {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  line-height: 1.5; }
+
+h1 {
+  font-family: 'WilhelmKlingsporGotLTStd';
+  font-size: 37px;
+  margin-top: -.1em; }
+  @media (min-width: 415px) {
+    h1 {
+      font-size: 65px; } }
+  @media (min-width: 769px) {
+    h1 {
+      font-size: 84px; } }
+
+a {
+  display: block;
+  padding-top: .25em;
+  cursor: alias; }
+  a, a:visited {
+    color: inherit; }
+  a:hover {
+    color: blue; }
+
+.center {
+  position: fixed;
+  top: 50vh;
+  left: 50vw;
+  transform: translate(-50%, -50%); }
+
+.main {
+  position: fixed;
+  width: 100vw;
+  height: 100vh; }
+
+.main > * {
+  position: absolute; }
+
+.face {
+  background-image: url(./img/face.jpg);
+  background-size: contain;
+  background-repeat: no-repeat;
+  z-index: -1; }
+
+.man {
+  width: 26px;
+  height: 50px;
+  margin-top: -50px;
+  margin-left: -13px;
+  background-image: url("./img/man.png");
+  background-size: auto 100%;
+  background-repeat: no-repeat;
+  transform-origin: 50% 100%; }
+
+.cursor {
+  width: 1em;
+  height: 1em;
+  background: black;
+  border-radius: 50%; }
