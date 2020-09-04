@@ -8,7 +8,7 @@
   "dependencies": {
     "bezier-js": "^2.2.3",
     "events": "^2.0.0",
-    "mithril": "^1.1.4",
+    "mithril": "^1.1.7",
     "reset-css": "^2.2.1"
   },
   "devDependencies": {
