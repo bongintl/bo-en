@@ -9,22 +9,21 @@
     "bezier-js": "^2.2.3",
     "events": "^2.0.0",
     "mithril": "^1.1.4",
-    "reset-css": "^2.2.1"
+    "reset-css": "^2.2.1",
+    "sass": "^1.69.5"
   },
   "devDependencies": {
-    "babel-preset-env": "^6.25.0",
     "babel-preset-env": "^1.6.0",
     "babelify": "^8.0.0",
     "browserify": "^16.0.0",
     "http-server": "^0.11.1",
-    "node-sass": "^4.5.3",
     "node-sass-import": "^1.1.1",
     "uglify-es": "^3.3.10",
     "watchify": "^3.10.0"
   },
   "scripts": {
-    "watch-sass": "node-sass scss/style.scss style.css && node-sass scss/style.scss style.css -w",
-    "build-sass": "node-sass scss/style.scss style.css --importer node_modules/node-sass-import",
+    "watch-sass": "sass scss/style.scss style.css && sass scss/style.scss style.css -w",
+    "build-sass": "sass scss/style.scss style.css --importer node_modules/node-sass-import",
     "watch-js": "watchify js/main.js -o bundle.js -v",
     "build-js": "browserify js/main.js -t [ babelify --presets [ env ] ] | uglifyjs -c -m > bundle.js",
     "dev": "npm run watch-sass & npm run watch-js & npm run start",
