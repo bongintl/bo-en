@@ -17,7 +17,7 @@ module.exports = ( state, emitter ) => ({
 			notes,
 			curves,
 			cursor,
-			face,
+			art,
 			now,
 			beatDuration
 		} = state;
@@ -66,11 +66,21 @@ module.exports = ( state, emitter ) => ({
 					}
 					return m( 'div', { key, style }, m.trust( html ) )
 				}),
-			m('.face', { style: {
-				width: cellSize[ 0 ] + 'px',
-				height: cellSize[ 1 ] + 'px',
-				transform: translate( face )
-			}})
+			// m('.face', { style: {
+			// 	width: cellSize[ 0 ] + 'px',
+			// 	height: cellSize[ 1 ] + 'px',
+			// 	transform: translate( face )
+      // }})
+      art.map(({ position, src, key }) => m('img.face', {
+        key,
+        src,
+        style: {
+				  width: cellSize[ 0 ] * 0.9 + 'px',
+				  height: cellSize[ 1 ] * 0.9 + 'px',
+          transform: translate(position),
+          objectPosition: `${key * 100}% 0`
+        }
+      }))
 			
 		);
 		

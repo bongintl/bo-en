@@ -18,7 +18,8 @@ var state = {
     loaded: false,
     playing: false,
     size: [ 1, 1 ],
-    face: [ -1, -1 ],
+    art: [],
+    // face: [ -1, -1 ],
     notes: html.map( ( html, i ) => ({
         html,
         key: i,
@@ -36,12 +37,14 @@ var state = {
     ],
     cursor: false,
     clicks: 0,
+    notesPlayed: 0,
     beatDuration: 1 / ( bpm / 60 ),
     startTime: 0,
     now: 0,
     audioUntil: 0,
 };
 
+var sample = arr => arr[ Math.floor( Math.random() * arr.length ) ];
 var equal = ( v1, v2 ) => v1[ 0 ] === v2[ 0 ] && v1[ 1 ] === v2[ 1 ];
 var rand = ( min, max ) => min + Math.floor( Math.random() * ( max - min ) );
 var visibleNotes = () => state.notes.filter( n => n.visible );
@@ -49,6 +52,23 @@ var notePositions = () => {
     return visibleNotes()
         .map( n => n.position )
         .concat( state.cursor ? [ state.cursor ] : [] );
+}
+var filledPositions = () => [
+  ...notePositions(),
+  ...state.art.map(({position}) => position)
+]
+var emptyPositions = () => {
+    var filled = filledPositions();
+    var positions = [];
+    for ( var x = 0; x < state.size[ 0 ]; x++ ) {
+        for ( var y = 0; y < state.size[ 1 ]; y++ ) {
+            var position = [ x, y ];
+            if ( !filled.some( p => equal( position, p ) ) ) {
+                positions.push( position );
+            }
+        }
+    }
+    return positions;
 }
 
 var updateCurves = () => {
@@ -76,23 +96,39 @@ var tick = () => {
             didSound = true;
         }
     })
-    if ( didSound ) moveFace();
+  if (didSound) {
+      state.notesPlayed++
+      updateArt()
+    }
     state.audioUntil = end;
     state.now = now % duration;
     m.redraw();
     requestAnimationFrame( tick );
 }
 
-var moveFace = () => {
-    var filled = notePositions();
-    while ( true ) {
-        var position = [
-            rand( 0, state.size[ 0 ] ),
-            rand( 0, state.size[ 1 ] )
-        ];
-        if ( !filled.some( p => equal( position, p ) ) ) {
-            return state.face = position;
-        }
+const artSrcs = Array(19).fill(0).map((_, i) => `./img/art${i + 1}.svg`)
+var updateArt = () => {
+    var max = Math.min(
+      Math.floor((state.size[0] * state.size[1]) / 10),
+      state.notesPlayed
+    )
+    var numToRemove = state.art.length === max ? 2 : 1
+    
+    for (var i = 0; i < numToRemove; i++) {
+      if (state.art.length === 0) break
+      var idxToRemove = Math.floor(Math.random() * state.art.length)
+      state.art.splice(idxToRemove, 1)
+    }
+    
+    var numToAdd = Math.min(2, max - state.art.length)
+    
+    for (var i = 0; i < numToAdd; i++) {
+      var empty = emptyPositions()
+      if (!empty.length) return
+      var position = sample(empty)
+      var srcs = artSrcs.filter(src => !state.art.some(art => art.src === src))
+      if (!srcs.length) return
+      state.art.push({ position, src: sample(srcs), key: Math.random() })
     }
 }
 
@@ -126,7 +162,7 @@ emitter.on( state.events.RESIZE, viewport => {
     if ( viewport[ 0 ] <= BREAKPOINTS[ 0 ] ) {
         state.size = [ 4, 7 ];
     } else {
-        state.size = [ 8, 7 ];
+        state.size = [ 8, 12 ];
     }
     state.cellSize = [
         viewport[ 0 ] / state.size[ 0 ],

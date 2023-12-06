@@ -68,7 +68,8 @@ module.exports = {
             
             var style = {
                 transform: translate + ' ' + rotate,
-                backgroundPosition
+                maskPosition: backgroundPosition,
+                '-webkit-mask-position': backgroundPosition,
             }
             
             return m('.man', { style, key: i } );

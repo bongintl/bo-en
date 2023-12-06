@@ -14,9 +14,27 @@
     src: url(./fonts/35C931_0_0.ttf)
 }
 
+@font-face {
+  font-family: "Deutsch";
+  src: url(./fonts/Deutsch.ttf)
+}
+
 html {
     font-family: Authentic, sans-serif;
     font-size: 14px;
+
+    --background-color: #211e20;
+    --text-color: #F7F7EB;
+    --green: #5CC1AF;
+    --orange: #EF6F6E;
+    --blue: #54AADB;
+    --pink: #DA4C96;
+    --yellow: #EEEE7E;
+    --brown: #FFD7A6;
+    --purple: #BF9BDB;
+
+    background-color: var(--background-color);
+    color: var(--text-color);
     @include medium { font-size: 16px; }
     @include large { font-size: 18px; }
 }
@@ -29,11 +47,11 @@ body {
 }
 
 h1 {
-    font-family: 'WilhelmKlingsporGotLTStd';
+    font-family: 'Deutsch';
     font-size: 37px;
     margin-top: -.1em;
     @include medium { font-size: 65px }
-    @include large { font-size: 84px }
+    // @include large { font-size: 84px }
 }
 
 a {
@@ -44,7 +62,7 @@ a {
         color: inherit;
     }
     &:hover {
-        color: blue;
+        color: var(--pink);
     }
 }
 
@@ -66,10 +84,11 @@ a {
 }
 
 .face {
-    background-image: url(./img/face.jpg);
-    background-size: contain;
-    background-repeat: no-repeat;
+    // background-image: url(./img/face.jpg);
+    // background-size: contain;
+    // background-repeat: no-repeat;
     z-index: -1;
+    object-fit: contain;
 }
 
 .man {
@@ -77,15 +96,19 @@ a {
     height: 50px;
     margin-top: -50px;
     margin-left: -13px;
-    background-image: url("./img/man.png");
-    background-size: auto 100%;
-    background-repeat: no-repeat;
+    background-color: var(--text-color);
     transform-origin: 50% 100%;
+    -webkit-mask-image: url("./img/man.png");
+    mask-image: url("./img/man.png");
+    -webkit-mask-size: auto 100%;
+    mask-size: auto 100%;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
 }
 
 .cursor {
     width: 1em;
     height: 1em;
-    background: black;
+    background: var(--text-color);
     border-radius: 50%;
 }

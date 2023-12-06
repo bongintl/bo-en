@@ -26,7 +26,7 @@ module.exports = {
             curves.length > 0 && m( 'path', {
                 d: pathdata( curves, cellSize ),
                 fill: 'none',
-                stroke: 'black',
+                stroke: 'var(--text-color)',
                 strokeWidth: 1
             })
         )
