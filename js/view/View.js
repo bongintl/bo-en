@@ -1,89 +1,139 @@
 var m = require("mithril");
 
-var Curves = require('./Curves');
-var Men = require('./Men');
+var Curves = require("./Curves");
+var Men = require("./Men");
 
-var isTouch = 'ontouchstart' in window;
+var { symbols } = require("../data");
 
-module.exports = ( state, emitter ) => ({
-	
-	view: () => {
-		
-		var {
-			loaded,
-			playing,
-			size,
-			cellSize,
-			notes,
-			curves,
-			cursor,
-			art,
-			now,
-			beatDuration
-		} = state;
-		
-		if ( !loaded ) {
-			return m( '.center', 'boading...' );
-		}
-		
-		var bind = event => e => {
-			var ww = window.innerWidth;
-			var wh = window.innerHeight;
-			var x = Math.floor( e.clientX / ww * size[ 0 ] );
-			var y = Math.floor( e.clientY / wh * size[ 1 ] );
-			emitter.emit( event, [ x, y ] );
-		}
-		
-		var translate = ([ x, y ]) => `translate(${ x * cellSize[ 0 ] }px, ${ y * cellSize[ 1 ] }px)`;
+var isTouch = "ontouchstart" in window;
 
-		return m('.main', 
-			{
-				onclick: bind( state.events.PLACE_NOTE ),
-				onmousemove: !isTouch && bind( state.events.PLACE_CURSOR )
-			},
-			isTouch && notes.every( n => !n.visible ) && m( '.center', 'touch me' ),
-			playing && m( Men, {
-				size,
-				cellSize,
-				curves,
-				beatDuration,
-				now
-			}),
-			m( Curves, {
-				size,
-				cellSize,
-				curves
-			}),
-			cursor && m('.cursor', { style: {
-				transform: translate( cursor )
-			}}),
-			notes
-				.filter( n => n.visible )
-				.map( ({ position, key, html }) => {
-					var style = {
-						maxWidth: cellSize[ 0 ] + 'px',
-						transform: translate( position )
-					}
-					return m( 'div', { key, style }, m.trust( html ) )
-				}),
-			// m('.face', { style: {
-			// 	width: cellSize[ 0 ] + 'px',
-			// 	height: cellSize[ 1 ] + 'px',
-			// 	transform: translate( face )
+var sample = arr => arr[Math.floor(Math.random() * arr.length)];
+var rand = (min, max) => min + Math.floor(Math.random() * (max - min));
+var DEG2RAD = Math.PI / 180;
+
+var translate = (cellSize, [x, y]) =>
+  `translate(${x * cellSize[0]}px, ${y * cellSize[1]}px)`;
+
+var popSymbol = (cellSize, position) => {
+  const img = document.createElement("img");
+  img.classList.add("face");
+  img.src = sample(symbols);
+  document.body.appendChild(img);
+
+  const pos = [position[0] * cellSize[0], position[1] * cellSize[1]];
+  const velocity = [rand(-500, 500), rand(-750, -1250)];
+  let angle = rand(-10, 10) * DEG2RAD;
+  const angvel = rand(-90, 90) * DEG2RAD;
+
+  let then = Date.now() / 1000;
+  const tick = () => {
+    const now = Date.now() / 1000;
+    const dt = now - then;
+    then = now;
+
+    pos[0] += velocity[0] * dt;
+    pos[1] += velocity[1] * dt;
+    velocity[1] += dt * 2000;
+    angle += angvel * dt;
+
+    img.style.transform = `
+      translate(${pos[0]}px, ${pos[1]}px)
+      rotate(${angle}rad)`;
+
+    if (pos[1] > window.innerHeight) {
+      img.remove();
+    } else {
+      requestAnimationFrame(tick);
+    }
+  };
+
+  tick();
+};
+
+module.exports = (state, emitter) => ({
+  oncreate: () => {
+    console.log("init");
+    emitter.on(state.events.NOTE_PLAYED, position => {
+      console.log(position);
+      popSymbol(state.cellSize, position);
+    });
+  },
+  view: () => {
+    var {
+      loaded,
+      playing,
+      size,
+      cellSize,
+      notes,
+      curves,
+      cursor,
+      art,
+      now,
+      beatDuration,
+    } = state;
+
+    if (!loaded) {
+      return m(".center", "boading...");
+    }
+
+    var bind = event => e => {
+      var ww = window.innerWidth;
+      var wh = window.innerHeight;
+      var x = Math.floor((e.clientX / ww) * size[0]);
+      var y = Math.floor((e.clientY / wh) * size[1]);
+      emitter.emit(event, [x, y]);
+    };
+
+    return m(
+      ".main",
+      {
+        onclick: bind(state.events.PLACE_NOTE),
+        onmousemove: !isTouch && bind(state.events.PLACE_CURSOR),
+      },
+      isTouch && notes.every(n => !n.visible) && m(".center", "touch me"),
+      playing &&
+        m(Men, {
+          size,
+          cellSize,
+          curves,
+          beatDuration,
+          now,
+        }),
+      m(Curves, {
+        size,
+        cellSize,
+        curves,
+      }),
+      cursor &&
+        m(".cursor", {
+          style: {
+            transform: translate(cellSize, cursor),
+          },
+        }),
+      notes
+        .filter(n => n.visible)
+        .map(({ position, key, html }) => {
+          var style = {
+            maxWidth: cellSize[0] + "px",
+            transform: translate(cellSize, position),
+          };
+          return m("div", { key, style }, m.trust(html));
+        })
+      // m('.face', { style: {
+      // 	width: cellSize[ 0 ] + 'px',
+      // 	height: cellSize[ 1 ] + 'px',
+      // 	transform: translate( face )
       // }})
-      art.map(({ position, src, key }) => m('img.face', {
-        key,
-        src,
-        style: {
-				  width: cellSize[ 0 ] * 0.9 + 'px',
-				  height: cellSize[ 1 ] * 0.9 + 'px',
-          transform: translate(position),
-          objectPosition: `${key * 100}% 0`
-        }
-      }))
-			
-		);
-		
-	}
-	
+      // art.map(({ position, src, key }) => m('img.face', {
+      //   key,
+      //   src,
+      //   style: {
+      // 	  width: cellSize[ 0 ] * 0.9 + 'px',
+      // 	  height: cellSize[ 1 ] * 0.9 + 'px',
+      //     transform: translate(position),
+      //     objectPosition: `${key * 100}% 0`
+      //   }
+      // }))
+    );
+  },
 });
