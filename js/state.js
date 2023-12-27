@@ -2,7 +2,7 @@ var m = require("mithril");
 var EventEmitter = require("events");
 var curves = require("./curves");
 var audio = require("./audio");
-var { html, bpm, voice } = require("./data");
+var { html, bpm, voice, symbols } = require("./data");
 
 var BREAKPOINTS = [414, 768];
 
@@ -20,6 +20,7 @@ var state = {
   playing: false,
   size: [1, 1],
   art: [],
+  face: [-1, -1],
   notes: html.map((html, i) => ({
     html,
     key: i,
@@ -34,11 +35,15 @@ var state = {
     `./audio/${voice}_5.mp3`,
     `./audio/${voice}_6.mp3`,
     `./audio/${voice}_7.mp3`,
+    `./audio/${voice}_8.mp3`,
+    `./audio/${voice}_9.mp3`,
+    `./audio/${voice}_10.mp3`,
+    `./audio/${voice}_11.mp3`,
   ],
   cursor: false,
   clicks: 0,
   notesPlayed: 0,
-  beatDuration: 1 / (bpm / 60),
+  beatDuration: 60 / bpm,
   startTime: 0,
   now: 0,
   audioUntil: 0,
@@ -52,23 +57,6 @@ var notePositions = () => {
   return visibleNotes()
     .map(n => n.position)
     .concat(state.cursor ? [state.cursor] : []);
-};
-var filledPositions = () => [
-  ...notePositions(),
-  ...state.art.map(({ position }) => position),
-];
-var emptyPositions = () => {
-  var filled = filledPositions();
-  var positions = [];
-  for (var x = 0; x < state.size[0]; x++) {
-    for (var y = 0; y < state.size[1]; y++) {
-      var position = [x, y];
-      if (!filled.some(p => equal(position, p))) {
-        positions.push(position);
-      }
-    }
-  }
-  return positions;
 };
 
 var updateCurves = () => {
@@ -92,6 +80,7 @@ var tick = () => {
     while (t < start) t += duration;
     if (t < end) {
       var y = state.size[1] - 1 - position[1];
+      console.log(y);
       audio.play(state.sounds[y], t + state.startTime);
       didSound = true;
       emitter.emit(state.events.NOTE_PLAYED, position);
@@ -99,12 +88,23 @@ var tick = () => {
   });
   if (didSound) {
     state.notesPlayed++;
-    // updateArt();
+    moveFace();
   }
   state.audioUntil = end;
   state.now = now % duration;
   m.redraw();
   requestAnimationFrame(tick);
+};
+
+var moveFace = () => {
+  var filled = notePositions();
+  while (true) {
+    var position = [rand(0, state.size[0]), rand(0, state.size[1])];
+    if (!filled.some(p => equal(position, p))) {
+      state.face = position;
+      return;
+    }
+  }
 };
 
 // var updateArt = () => {
@@ -143,24 +143,38 @@ var reset = () => {
   updateCurves();
 };
 
-emitter.on(state.events.LOAD, () => {
+const loadImage = src =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+
+const loadSounds = () =>
   Promise.all(state.sounds.map(audio.load)).then(buffers => {
     state.sounds = buffers;
+  });
+
+const loadSymbols = () => Promise.all(symbols.map(loadImage));
+
+emitter.on(state.events.LOAD, () =>
+  Promise.all([loadSounds(), loadSymbols()]).then(() => {
     state.loaded = true;
     if (audio.context.state === "running") {
       play();
     } else {
       m.redraw();
     }
-  });
-});
+  })
+);
 
 emitter.on(state.events.RESIZE, viewport => {
   var prev = state.size;
   if (viewport[0] <= BREAKPOINTS[0]) {
     state.size = [4, 7];
   } else {
-    state.size = [8, 12];
+    state.size = [8, 11];
   }
   state.cellSize = [viewport[0] / state.size[0], viewport[1] / state.size[1]];
   if (!equal(prev, state.size)) reset();

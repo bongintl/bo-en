@@ -137,12 +137,13 @@ a:hover {
 }
 
 .face {
+  background-image: url(./img/face4.jpg);
+  background-size: contain;
+  background-repeat: no-repeat;
   position: absolute;
   top: 0;
   left: 0;
   z-index: -1;
-  object-fit: contain;
-  object-position: 0 0;
 }
 
 .man {

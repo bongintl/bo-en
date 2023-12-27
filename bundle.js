@@ -1,1 +1,3689 @@
-!function(){return function t(e,n,r){function i(a,u){if(!n[a]){if(!e[a]){var s="function"==typeof require&&require;if(!u&&s)return s(a,!0);if(o)return o(a,!0);var l=new Error("Cannot find module '"+a+"'");throw l.code="MODULE_NOT_FOUND",l}var c=n[a]={exports:{}};e[a][0].call(c.exports,function(t){var n=e[a][1][t];return i(n||t)},c,c.exports,t,e,n,r)}return n[a].exports}for(var o="function"==typeof require&&require,a=0;a<r.length;a++)i(r[a]);return i}}()({1:[function(t,e,n){"use strict";var r=new(window.AudioContext||window.webkitAudioContext),i=!1;e.exports={context:r,unlock:function(){if(!i){var t=r.createBuffer(1,1,22050),e=r.createBufferSource();e.buffer=t,e.start(0),i=!0}},load:function(t){return new Promise(function(e){var n=new XMLHttpRequest;n.open("GET",t,!0),n.responseType="arraybuffer",n.onload=function(){return e(n.response)},n.send()}).then(function(t){return new Promise(function(e){r.decodeAudioData(t,e)})})},play:function(t,e){var n=r.createBufferSource();return n.buffer=t,n.connect(r.destination),n.start(e),n}}},{}],2:[function(t,e,n){"use strict";var r=function(){return function(t,e){if(Array.isArray(t))return t;if(Symbol.iterator in Object(t))return function(t,e){var n=[],r=!0,i=!1,o=void 0;try{for(var a,u=t[Symbol.iterator]();!(r=(a=u.next()).done)&&(n.push(a.value),!e||n.length!==e);r=!0);}catch(t){i=!0,o=t}finally{try{!r&&u.return&&u.return()}finally{if(i)throw o}}return n}(t,e);throw new TypeError("Invalid attempt to destructure non-iterable instance")}}();var i=t("bezier-js"),o=function(t){return function(e){return[e[0]+t,e[1]]}},a=function(t,e){var n=t.map(function(t){return{point:t,connections:0}}),r=function(t,e){return e.slice().sort(function(t){return function(e){return Math.abs(t[1]-e.point[1])}}(t))[0]},i=function(t){return function(t){return r(t,n.filter(function(t){return 0===t.connections}))}(t)||r(t,n)};return e.map(function(t){var e=i(t);return e.connections++,[t,e.point]})},u=function(t){var e,n=r(t,2),i=n[0],o=n[1];return i.length===o.length?(e=o,i.map(function(t,n){return[t,e[n]]})):i.length>o.length?a(o,i):a(i,o).map(function(t){return t.reverse()})},s=function(t,e){return t[1]===e[1]?0:t[1]<e[1]?-1:1};e.exports=function(t,e){if(0===e.length)return[];var n=[];e.forEach(function(t){var e=t[0];n[e]||(n[e]=[]),n[e].push(t)});var a=(n=Object.values(n).map(function(t){return t.sort(s)}))[0],l=function(t){for(var e=[],n=0;n<=t.length-2;n++)e.push([t[n],t[n+1]]);return e}([n[n.length-1].map(o(-t[0]))].concat(function(t){if(Array.isArray(t)){for(var e=0,n=Array(t.length);e<t.length;e++)n[e]=t[e];return n}return Array.from(t)}(n),[a.map(o(t[0]))]));return l.map(u).reduce(function(t,e){return t.concat(e)}).map(function(t){var e=r(t,2),n=e[0],a=e[1],u=.8*(a[0]-n[0]),s=o(u)(n),l=o(-u)(a);return new i(n[0],n[1],s[0],s[1],l[0],l[1],a[0],a[1])})}},{"bezier-js":9}],3:[function(t,e,n){"use strict";var r,i=document.getElementById("data"),o=Array.from(i.children).map(function(t){return t.outerHTML}),a=Number(i.dataset.bpm),u=(r=i.dataset.voices.split(","))[Math.floor(Math.random()*r.length)],s=Array(19).fill(0).map(function(t,e){return"./img/art"+(e+1)+".svg"});e.exports={html:o,bpm:a,voice:u,symbols:s}},{}],4:[function(t,e,n){"use strict";var r=t("mithril"),i=t("./state"),o=i.state,a=i.emitter,u=t("./view/View"),s=function(){var t=[window.innerWidth,window.innerHeight];a.emit(o.events.RESIZE,t)};window.addEventListener("resize",s),s(),r.mount(document.body,u(o,a)),a.emit(o.events.LOAD)},{"./state":5,"./view/View":8,mithril:14}],5:[function(t,e,n){"use strict";var r=t("mithril"),i=t("events"),o=t("./curves"),a=t("./audio"),u=t("./data"),s=u.html,l=u.bpm,c=u.voice,f=[414,768],h=new i,d={events:{LOAD:"load",RESIZE:"resize",PLACE_CURSOR:"placeCursor",PLACE_NOTE:"placeNote",NOTE_PLAYED:"notePlayed"},loaded:!1,playing:!1,size:[1,1],art:[],notes:s.map(function(t,e){return{html:t,key:e,position:[-1,-1],visible:!1}}),sounds:["./audio/"+c+"_1.mp3","./audio/"+c+"_2.mp3","./audio/"+c+"_3.mp3","./audio/"+c+"_4.mp3","./audio/"+c+"_5.mp3","./audio/"+c+"_6.mp3","./audio/"+c+"_7.mp3"],cursor:!1,clicks:0,notesPlayed:0,beatDuration:1/(l/60),startTime:0,now:0,audioUntil:0},v=function(t,e){return t[0]===e[0]&&t[1]===e[1]},p=function(){return d.notes.filter(function(t){return t.visible})},m=function(){return p().map(function(t){return t.position}).concat(d.cursor?[d.cursor]:[])},y=function(){d.curves=o(d.size,m())},x=function(){d.startTime=a.context.currentTime,d.playing=!0,g()},g=function t(){var e=d.beatDuration*d.size[0],n=a.context.currentTime-d.startTime,i=d.audioUntil,o=n+.05,u=!1;m().forEach(function(t){for(var n=t[0]*d.beatDuration;n<i;)n+=e;if(n<o){var r=d.size[1]-1-t[1];a.play(d.sounds[r],n+d.startTime),u=!0,h.emit(d.events.NOTE_PLAYED,t)}}),u&&d.notesPlayed++,d.audioUntil=o,d.now=n%e,r.redraw(),requestAnimationFrame(t)};h.on(d.events.LOAD,function(){Promise.all(d.sounds.map(a.load)).then(function(t){d.sounds=t,d.loaded=!0,"running"===a.context.state?x():r.redraw()})}),h.on(d.events.RESIZE,function(t){var e=d.size;t[0]<=f[0]?d.size=[4,7]:d.size=[8,12],d.cellSize=[t[0]/d.size[0],t[1]/d.size[1]],v(e,d.size)||(d.clicks=0,d.notes.forEach(function(t){return t.visible=!1}),d.face=[-1,-1],d.cursor=!("ontouchstart"in window)&&[Math.floor(d.size[0]/2),Math.floor(d.size[1]/2)],y()),r.redraw()}),h.on(d.events.PLACE_NOTE,function(t){if(a.unlock(),d.playing||x(),!d.notes.some(function(e){return v(t,e.position)})){var e=d.notes[d.clicks%d.notes.length];e.position=t,e.visible=!0,d.clicks++,d.cursor=!1,y()}}),h.on(d.events.PLACE_CURSOR,function(t){if(!1!==t){var e=p().some(function(e){return v(t,e.position)});d.cursor=!e&&t}else d.cursor=t;y()}),e.exports={state:d,emitter:h}},{"./audio":1,"./curves":2,"./data":3,events:13,mithril:14}],6:[function(t,e,n){"use strict";var r=function(){return function(t,e){if(Array.isArray(t))return t;if(Symbol.iterator in Object(t))return function(t,e){var n=[],r=!0,i=!1,o=void 0;try{for(var a,u=t[Symbol.iterator]();!(r=(a=u.next()).done)&&(n.push(a.value),!e||n.length!==e);r=!0);}catch(t){i=!0,o=t}finally{try{!r&&u.return&&u.return()}finally{if(i)throw o}}return n}(t,e);throw new TypeError("Invalid attempt to destructure non-iterable instance")}}(),i=t("mithril"),o=function(t,e){return t.map(function(t){return n=function(t){return t.points.map(function(t){return[t.x,t.y]})}(t).map(function(t){return function(e){return[e[0]*t[0],e[1]*t[1]]}}(e)),i=function(t){return t[0]+" "+t[1]},o=function(t){for(var e=arguments.length,n=Array(e>1?e-1:0),r=1;r<e;r++)n[r-1]=arguments[r];return t+" "+n.map(i).join(" ")},a=r(n,4),u=a[0],s=a[1],l=a[2],c=a[3],o("M",u)+" "+o("C",s,l,c);var n,i,o,a,u,s,l,c}).join(" ")};e.exports={view:function(t){var e=t.attrs,n=e.size,r=e.cellSize,a=e.curves,u=n[0]*r[0],s=n[1]*r[1];return i("svg.curves",{width:u,height:s},a.length>0&&i("path",{d:o(a,r),fill:"none",stroke:"var(--text-color)",strokeWidth:1}))}}},{mithril:14}],7:[function(t,e,n){"use strict";function r(t){if(Array.isArray(t)){for(var e=0,n=Array(t.length);e<t.length;e++)n[e]=t[e];return n}return Array.from(t)}var i=t("mithril");e.exports={view:function(t){var e=t.attrs,n=e.curves,o=e.size,a=e.cellSize,u=e.beatDuration,s=e.now;if(0!==n.length){var l=s/u,c={p1:{x:l,y:-1},p2:{x:l,y:o[1]+1}},f=n.filter(function(t){var e=t.compute(0).x,n=t.compute(1).x;return e<=l&&n>=l}),h=f.map(function(t){return t.intersects(c).map(function(e){var n=t.compute(e),r=n.x,i=n.y,o=t.normal(e),a=o.x,u=o.y;return{position:[r,i],angle:Math.atan2(u,a)-Math.PI/2}})}).reduce(function(t,e){return t.concat(e)},[]),d=[].concat(r(h.map(function(t){var e=t.position,n=t.angle;return{position:[e[0]-o[0],e[1]],angle:n}})),r(h),r(h.map(function(t){var e=t.position,n=t.angle;return{position:[e[0]+o[0],e[1]],angle:n}}))),v=-26*(5-Math.floor(8*s)%5-1)+"px 0";return d.map(function(t,e){var n=t.position,r=t.angle,o=n[0]*a[0],u=n[1]*a[1];return i(".man",{style:{transform:"translate( "+o+"px, "+u+"px )"+" "+("rotate( "+r+"rad )"),maskPosition:v,"-webkit-mask-position":v},key:e})})}}}},{mithril:14}],8:[function(t,e,n){"use strict";var r=function(){return function(t,e){if(Array.isArray(t))return t;if(Symbol.iterator in Object(t))return function(t,e){var n=[],r=!0,i=!1,o=void 0;try{for(var a,u=t[Symbol.iterator]();!(r=(a=u.next()).done)&&(n.push(a.value),!e||n.length!==e);r=!0);}catch(t){i=!0,o=t}finally{try{!r&&u.return&&u.return()}finally{if(i)throw o}}return n}(t,e);throw new TypeError("Invalid attempt to destructure non-iterable instance")}}(),i=t("mithril"),o=t("./Curves"),a=t("./Men"),u=t("../data").symbols,s="ontouchstart"in window,l=function(t,e){return t+Math.floor(Math.random()*(e-t))},c=Math.PI/180,f=function(t,e){var n=r(e,2),i=n[0],o=n[1];return"translate("+i*t[0]+"px, "+o*t[1]+"px)"},h=function(t,e){var n,r=document.createElement("img");r.classList.add("face"),r.src=(n=u)[Math.floor(Math.random()*n.length)],document.body.appendChild(r);var i=[e[0]*t[0],e[1]*t[1]],o=[l(-500,500),l(-750,-1250)],a=l(-10,10)*c,s=l(-90,90)*c,f=Date.now()/1e3;!function t(){var e=Date.now()/1e3,n=e-f;f=e,i[0]+=o[0]*n,i[1]+=o[1]*n,o[1]+=2e3*n,a+=s*n,r.style.transform="\n      translate("+i[0]+"px, "+i[1]+"px)\n      rotate("+a+"rad)",i[1]>window.innerHeight?r.remove():requestAnimationFrame(t)}()};e.exports=function(t,e){return{oncreate:function(){console.log("init"),e.on(t.events.NOTE_PLAYED,function(e){console.log(e),h(t.cellSize,e)})},view:function(){var n=t.loaded,r=t.playing,u=t.size,l=t.cellSize,c=t.notes,h=t.curves,d=t.cursor,v=(t.art,t.now),p=t.beatDuration;if(!n)return i(".center","boading...");var m=function(t){return function(n){var r=window.innerWidth,i=window.innerHeight,o=Math.floor(n.clientX/r*u[0]),a=Math.floor(n.clientY/i*u[1]);e.emit(t,[o,a])}};return i(".main",{onclick:m(t.events.PLACE_NOTE),onmousemove:!s&&m(t.events.PLACE_CURSOR)},s&&c.every(function(t){return!t.visible})&&i(".center","touch me"),r&&i(a,{size:u,cellSize:l,curves:h,beatDuration:p,now:v}),i(o,{size:u,cellSize:l,curves:h}),d&&i(".cursor",{style:{transform:f(l,d)}}),c.filter(function(t){return t.visible}).map(function(t){var e=t.position,n=t.key,r=t.html,o={maxWidth:l[0]+"px",transform:f(l,e)};return i("div",{key:n,style:o},i.trust(r))}))}}}},{"../data":3,"./Curves":6,"./Men":7,mithril:14}],9:[function(t,e,n){e.exports=t("./lib/bezier")},{"./lib/bezier":10}],10:[function(t,e,n){!function(){"use strict";var n=Math.abs,r=Math.min,i=Math.max,o=Math.cos,a=Math.sin,u=Math.acos,s=Math.sqrt,l=Math.PI,c={x:0,y:0,z:0},f=t("./utils.js"),h=t("./poly-bezier.js"),d=function(t){var e=t&&t.forEach?t:[].slice.call(arguments),r=!1;if("object"==typeof e[0]){r=e.length;var i=[];e.forEach(function(t){["x","y","z"].forEach(function(e){void 0!==t[e]&&i.push(t[e])})}),e=i}var o=!1,a=e.length;if(r){if(r>4){if(1!==arguments.length)throw new Error("Only new Bezier(point[]) is accepted for 4th and higher order curves");o=!0}}else if(6!==a&&8!==a&&9!==a&&12!==a&&1!==arguments.length)throw new Error("Only new Bezier(point[]) is accepted for 4th and higher order curves");var u=!o&&(9===a||12===a)||t&&t[0]&&void 0!==t[0].z;this._3d=u;for(var s=[],l=0,c=u?3:2;l<a;l+=c){var h={x:e[l],y:e[l+1]};u&&(h.z=e[l+2]),s.push(h)}this.order=s.length-1,this.points=s;var d=["x","y"];u&&d.push("z"),this.dims=d,this.dimlen=d.length,function(t){for(var e=t.order,r=t.points,i=f.align(r,{p1:r[0],p2:r[e]}),o=0;o<i.length;o++)if(n(i[o].y)>1e-4)return void(t._linear=!1);t._linear=!0}(this),this._t1=0,this._t2=1,this.update()};function v(t,e,n,r,i){void 0===i&&(i=.5);var o=f.projectionratio(i,t),a=1-o,u={x:o*e.x+a*r.x,y:o*e.y+a*r.y},s=f.abcratio(i,t);return{A:{x:n.x+(n.x-u.x)/s,y:n.y+(n.y-u.y)/s},B:n,C:u}}d.fromSVG=function(t){var e=t.match(/[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?/g).map(parseFloat);return/[cq]/.test(t)?(e=e.map(function(t,n){return n<2?t:t+e[n%2]}),new d(e)):new d(e)},d.quadraticFromPoints=function(t,e,n,r){if(void 0===r&&(r=.5),0===r)return new d(e,e,n);if(1===r)return new d(t,e,e);var i=v(2,t,e,n,r);return new d(t,i.A,n)},d.cubicFromPoints=function(t,e,n,r,i){void 0===r&&(r=.5);var o=v(3,t,e,n,r);void 0===i&&(i=f.dist(e,o.C));var a=i*(1-r)/r,u=f.dist(t,n),s=(n.x-t.x)/u,l=(n.y-t.y)/u,c=i*s,h=i*l,p=a*s,m=a*l,y=e.x-c,x=e.y-h,g=e.x+p,w=e.y+m,b=o.A,z=b.x+(y-b.x)/(1-r),_=b.y+(x-b.y)/(1-r),E=b.x+(g-b.x)/r,k=b.y+(w-b.y)/r,A={x:t.x+(z-t.x)/r,y:t.y+(_-t.y)/r},S={x:n.x+(E-n.x)/(1-r),y:n.y+(k-n.y)/(1-r)};return new d(t,A,S,n)};var p=function(){return f};d.getUtils=p,d.prototype={getUtils:p,valueOf:function(){return this.toString()},toString:function(){return f.pointsToString(this.points)},toSVG:function(t){if(this._3d)return!1;for(var e=this.points,n=["M",e[0].x,e[0].y,2===this.order?"Q":"C"],r=1,i=e.length;r<i;r++)n.push(e[r].x),n.push(e[r].y);return n.join(" ")},update:function(){this.dpoints=[];for(var t=this.points,e=t.length,n=e-1;e>1;e--,n--){for(var r,i=[],o=0;o<n;o++)r={x:n*(t[o+1].x-t[o].x),y:n*(t[o+1].y-t[o].y)},this._3d&&(r.z=n*(t[o+1].z-t[o].z)),i.push(r);this.dpoints.push(i),t=i}this.computedirection()},computedirection:function(){var t=this.points,e=f.angle(t[0],t[this.order],t[1]);this.clockwise=e>0},length:function(){return f.length(this.derivative.bind(this))},_lut:[],getLUT:function(t){if(t=t||100,this._lut.length===t)return this._lut;this._lut=[];for(var e=0;e<=t;e++)this._lut.push(this.compute(e/t));return this._lut},on:function(t,e){e=e||5;for(var n,r=this.getLUT(),i=[],o=0,a=0;a<r.length;a++)n=r[a],f.dist(n,t)<e&&(i.push(n),o+=a/r.length);return!!i.length&&o/i.length},project:function(t){var e=this.getLUT(),n=e.length-1,r=f.closest(e,t),i=r.mdist,o=r.mpos;if(0===o||o===n){var a=o/n,u=this.compute(a);return u.t=a,u.d=i,u}var s,l,c,h=(o+1)/n,d=.1/n;for(i+=1,s=a=(o-1)/n;a<h+d;a+=d)l=this.compute(a),(c=f.dist(t,l))<i&&(i=c,s=a);return(l=this.compute(s)).t=s,l.d=i,l},get:function(t){return this.compute(t)},point:function(t){return this.points[t]},compute:function(t){if(0===t)return this.points[0];if(1===t)return this.points[this.order];var e=this.points,n=1-t;if(1===this.order)return l={x:n*e[0].x+t*e[1].x,y:n*e[0].y+t*e[1].y},this._3d&&(l.z=n*e[0].z+t*e[1].z),l;if(this.order<4){var r,i,o,a=n*n,u=t*t,s=0;2===this.order?(e=[e[0],e[1],e[2],c],r=a,i=n*t*2,o=u):3===this.order&&(r=a*n,i=a*t*3,o=n*u*3,s=t*u);var l={x:r*e[0].x+i*e[1].x+o*e[2].x+s*e[3].x,y:r*e[0].y+i*e[1].y+o*e[2].y+s*e[3].y};return this._3d&&(l.z=r*e[0].z+i*e[1].z+o*e[2].z+s*e[3].z),l}for(var f=JSON.parse(JSON.stringify(this.points));f.length>1;){for(var h=0;h<f.length-1;h++)f[h]={x:f[h].x+(f[h+1].x-f[h].x)*t,y:f[h].y+(f[h+1].y-f[h].y)*t},void 0!==f[h].z&&(f[h]=f[h].z+(f[h+1].z-f[h].z)*t);f.splice(f.length-1,1)}return f[0]},raise:function(){for(var t,e,n=this.points,r=[n[0]],i=n.length,o=1;o<i;o++)t=n[o],e=n[o-1],r[o]={x:(i-o)/i*t.x+o/i*e.x,y:(i-o)/i*t.y+o/i*e.y};return r[i]=n[i-1],new d(r)},derivative:function(t){var e,n,r=1-t,i=0,o=this.dpoints[0];2===this.order&&(o=[o[0],o[1],c],e=r,n=t),3===this.order&&(e=r*r,n=r*t*2,i=t*t);var a={x:e*o[0].x+n*o[1].x+i*o[2].x,y:e*o[0].y+n*o[1].y+i*o[2].y};return this._3d&&(a.z=e*o[0].z+n*o[1].z+i*o[2].z),a},inflections:function(){return f.inflections(this.points)},normal:function(t){return this._3d?this.__normal3(t):this.__normal2(t)},__normal2:function(t){var e=this.derivative(t),n=s(e.x*e.x+e.y*e.y);return{x:-e.y/n,y:e.x/n}},__normal3:function(t){var e=this.derivative(t),n=this.derivative(t+.01),r=s(e.x*e.x+e.y*e.y+e.z*e.z),i=s(n.x*n.x+n.y*n.y+n.z*n.z);e.x/=r,e.y/=r,e.z/=r,n.x/=i,n.y/=i,n.z/=i;var o={x:n.y*e.z-n.z*e.y,y:n.z*e.x-n.x*e.z,z:n.x*e.y-n.y*e.x},a=s(o.x*o.x+o.y*o.y+o.z*o.z);o.x/=a,o.y/=a,o.z/=a;var u=[o.x*o.x,o.x*o.y-o.z,o.x*o.z+o.y,o.x*o.y+o.z,o.y*o.y,o.y*o.z-o.x,o.x*o.z-o.y,o.y*o.z+o.x,o.z*o.z];return{x:u[0]*e.x+u[1]*e.y+u[2]*e.z,y:u[3]*e.x+u[4]*e.y+u[5]*e.z,z:u[6]*e.x+u[7]*e.y+u[8]*e.z}},hull:function(t){var e,n=this.points,r=[],i=[],o=0,a=0,u=0;for(i[o++]=n[0],i[o++]=n[1],i[o++]=n[2],3===this.order&&(i[o++]=n[3]);n.length>1;){for(r=[],a=0,u=n.length-1;a<u;a++)e=f.lerp(t,n[a],n[a+1]),i[o++]=e,r.push(e);n=r}return i},split:function(t,e){if(0===t&&e)return this.split(e).left;if(1===e)return this.split(t).right;var n=this.hull(t),r={left:2===this.order?new d([n[0],n[3],n[5]]):new d([n[0],n[4],n[7],n[9]]),right:2===this.order?new d([n[5],n[4],n[2]]):new d([n[9],n[8],n[6],n[3]]),span:n};return r.left._t1=f.map(0,0,1,this._t1,this._t2),r.left._t2=f.map(t,0,1,this._t1,this._t2),r.right._t1=f.map(t,0,1,this._t1,this._t2),r.right._t2=f.map(1,0,1,this._t1,this._t2),e?(e=f.map(e,t,1,0,1),r.right.split(e).left):r},extrema:function(){var t,e,n=this.dims,r={},i=[];return n.forEach(function(n){e=function(t){return t[n]},t=this.dpoints[0].map(e),r[n]=f.droots(t),3===this.order&&(t=this.dpoints[1].map(e),r[n]=r[n].concat(f.droots(t))),r[n]=r[n].filter(function(t){return t>=0&&t<=1}),i=i.concat(r[n].sort())}.bind(this)),i=i.sort().filter(function(t,e){return i.indexOf(t)===e}),r.values=i,r},bbox:function(){var t=this.extrema(),e={};return this.dims.forEach(function(n){e[n]=f.getminmax(this,n,t[n])}.bind(this)),e},overlaps:function(t){var e=this.bbox(),n=t.bbox();return f.bboxoverlap(e,n)},offset:function(t,e){if(void 0!==e){var n=this.get(t),r=this.normal(t),i={c:n,n:r,x:n.x+r.x*e,y:n.y+r.y*e};return this._3d&&(i.z=n.z+r.z*e),i}if(this._linear){var o=this.normal(0),a=this.points.map(function(e){var n={x:e.x+t*o.x,y:e.y+t*o.y};return e.z&&r.z&&(n.z=e.z+t*o.z),n});return[new d(a)]}return this.reduce().map(function(e){return e.scale(t)})},simple:function(){if(3===this.order){var t=f.angle(this.points[0],this.points[3],this.points[1]),e=f.angle(this.points[0],this.points[3],this.points[2]);if(t>0&&e<0||t<0&&e>0)return!1}var r=this.normal(0),i=this.normal(1),o=r.x*i.x+r.y*i.y;return this._3d&&(o+=r.z*i.z),n(u(o))<l/3},reduce:function(){var t,e,r=0,i=0,o=[],a=[],u=this.extrema().values;for(-1===u.indexOf(0)&&(u=[0].concat(u)),-1===u.indexOf(1)&&u.push(1),r=u[0],t=1;t<u.length;t++)i=u[t],(e=this.split(r,i))._t1=r,e._t2=i,o.push(e),r=i;return o.forEach(function(t){for(r=0,i=0;i<=1;)for(i=r+.01;i<=1.01;i+=.01)if(!(e=t.split(r,i)).simple()){if(n(r-(i-=.01))<.01)return[];(e=t.split(r,i))._t1=f.map(r,0,1,t._t1,t._t2),e._t2=f.map(i,0,1,t._t1,t._t2),a.push(e),r=i;break}r<1&&((e=t.split(r,1))._t1=f.map(r,0,1,t._t1,t._t2),e._t2=t._t2,a.push(e))}),a},scale:function(t){var e=this.order,n=!1;if("function"==typeof t&&(n=t),n&&2===e)return this.raise().scale(n);var r=this.clockwise,i=n?n(0):t,o=n?n(1):t,a=[this.offset(0,10),this.offset(1,10)],u=f.lli4(a[0],a[0].c,a[1],a[1].c);if(!u)throw new Error("cannot scale this curve. Try reducing it first.");var l=this.points,c=[];return[0,1].forEach(function(t){var n=c[t*e]=f.copy(l[t*e]);n.x+=(t?o:i)*a[t].n.x,n.y+=(t?o:i)*a[t].n.y}.bind(this)),n?([0,1].forEach(function(i){if(2!==this.order||!i){var o=l[i+1],a={x:o.x-u.x,y:o.y-u.y},f=n?n((i+1)/e):t;n&&!r&&(f=-f);var h=s(a.x*a.x+a.y*a.y);a.x/=h,a.y/=h,c[i+1]={x:o.x+f*a.x,y:o.y+f*a.y}}}.bind(this)),new d(c)):([0,1].forEach(function(t){if(2!==this.order||!t){var n=c[t*e],r=this.derivative(t),i={x:n.x+r.x,y:n.y+r.y};c[t+1]=f.lli4(n,i,u,l[t+1])}}.bind(this)),new d(c))},outline:function(t,e,n,r){e=void 0===e?t:e;var i,o=this.reduce(),a=o.length,u=[],s=[],l=0,c=this.length(),d=void 0!==n&&void 0!==r;function v(t,e,n,r,i){return function(o){var a=r/n,u=(r+i)/n,s=e-t;return f.map(o,0,1,t+a*s,t+u*s)}}o.forEach(function(i){z=i.length(),d?(u.push(i.scale(v(t,n,c,l,z))),s.push(i.scale(v(-e,-r,c,l,z)))):(u.push(i.scale(t)),s.push(i.scale(-e))),l+=z}),s=s.map(function(t){return(i=t.points)[3]?t.points=[i[3],i[2],i[1],i[0]]:t.points=[i[2],i[1],i[0]],t}).reverse();var p=u[0].points[0],m=u[a-1].points[u[a-1].points.length-1],y=s[a-1].points[s[a-1].points.length-1],x=s[0].points[0],g=f.makeline(y,p),w=f.makeline(m,x),b=[g].concat(u).concat([w]).concat(s),z=b.length;return new h(b)},outlineshapes:function(t,e,n){e=e||t;for(var r=this.outline(t,e).curves,i=[],o=1,a=r.length;o<a/2;o++){var u=f.makeshape(r[o],r[a-o],n);u.startcap.virtual=o>1,u.endcap.virtual=o<a/2-1,i.push(u)}return i},intersects:function(t,e){return t?t.p1&&t.p2?this.lineIntersects(t):(t instanceof d&&(t=t.reduce()),this.curveintersects(this.reduce(),t,e)):this.selfintersects(e)},lineIntersects:function(t){var e=r(t.p1.x,t.p2.x),n=r(t.p1.y,t.p2.y),o=i(t.p1.x,t.p2.x),a=i(t.p1.y,t.p2.y),u=this;return f.roots(this.points,t).filter(function(t){var r=u.get(t);return f.between(r.x,e,o)&&f.between(r.y,n,a)})},selfintersects:function(t){var e,n,r,i,o=this.reduce(),a=o.length-2,u=[];for(e=0;e<a;e++)r=o.slice(e,e+1),i=o.slice(e+2),n=this.curveintersects(r,i,t),u=u.concat(n);return u},curveintersects:function(t,e,n){var r=[];t.forEach(function(t){e.forEach(function(e){t.overlaps(e)&&r.push({left:t,right:e})})});var i=[];return r.forEach(function(t){var e=f.pairiteration(t.left,t.right,n);e.length>0&&(i=i.concat(e))}),i},arcs:function(t){t=t||.5;return this._iterate(t,[])},_error:function(t,e,r,i){var o=(i-r)/4,a=this.get(r+o),u=this.get(i-o),s=f.dist(t,e),l=f.dist(t,a),c=f.dist(t,u);return n(l-s)+n(c-s)},_iterate:function(t,e){var n,r=0,i=1;do{n=0,i=1;var u,s,l,c,h,d=this.get(r),v=!1,p=!1,m=i,y=1;do{if(p=v,c=l,m=(r+i)/2,0,u=this.get(m),s=this.get(i),(l=f.getccenter(d,u,s)).interval={start:r,end:i},v=this._error(l,d,r,i)<=t,(h=p&&!v)||(y=i),v){if(i>=1){if(l.interval.end=y=1,c=l,i>1){var x={x:l.x+l.r*o(l.e),y:l.y+l.r*a(l.e)};l.e+=f.angle({x:l.x,y:l.y},x,this.get(1))}break}i+=(i-r)/2}else i=m}while(!h&&n++<100);if(n>=100)break;c=c||l,e.push(c),r=y}while(i<1);return e}},e.exports=d}()},{"./poly-bezier.js":11,"./utils.js":12}],11:[function(t,e,n){!function(){"use strict";var n=t("./utils.js"),r=function(t){this.curves=[],this._3d=!1,t&&(this.curves=t,this._3d=this.curves[0]._3d)};r.prototype={valueOf:function(){return this.toString()},toString:function(){return"["+this.curves.map(function(t){return n.pointsToString(t.points)}).join(", ")+"]"},addCurve:function(t){this.curves.push(t),this._3d=this._3d||t._3d},length:function(){return this.curves.map(function(t){return t.length()}).reduce(function(t,e){return t+e})},curve:function(t){return this.curves[t]},bbox:function(){for(var t=this.curves,e=t[0].bbox(),r=1;r<t.length;r++)n.expandbox(e,t[r].bbox());return e},offset:function(t){var e=[];return this.curves.forEach(function(n){e=e.concat(n.offset(t))}),new r(e)}},e.exports=r}()},{"./utils.js":12}],12:[function(t,e,n){!function(){"use strict";var n=Math.abs,r=Math.cos,i=Math.sin,o=Math.acos,a=Math.atan2,u=Math.sqrt,s=Math.pow,l=function(t){return t<0?-s(-t,1/3):s(t,1/3)},c=Math.PI,f=2*c,h=c/2,d=Number.MAX_SAFE_INTEGER,v=Number.MIN_SAFE_INTEGER,p={Tvalues:[-.06405689286260563,.06405689286260563,-.1911188674736163,.1911188674736163,-.3150426796961634,.3150426796961634,-.4337935076260451,.4337935076260451,-.5454214713888396,.5454214713888396,-.6480936519369755,.6480936519369755,-.7401241915785544,.7401241915785544,-.820001985973903,.820001985973903,-.8864155270044011,.8864155270044011,-.9382745520027328,.9382745520027328,-.9747285559713095,.9747285559713095,-.9951872199970213,.9951872199970213],Cvalues:[.12793819534675216,.12793819534675216,.1258374563468283,.1258374563468283,.12167047292780339,.12167047292780339,.1155056680537256,.1155056680537256,.10744427011596563,.10744427011596563,.09761865210411388,.09761865210411388,.08619016153195327,.08619016153195327,.0733464814110803,.0733464814110803,.05929858491543678,.05929858491543678,.04427743881741981,.04427743881741981,.028531388628933663,.028531388628933663,.0123412297999872,.0123412297999872],arcfn:function(t,e){var n=e(t),r=n.x*n.x+n.y*n.y;return void 0!==n.z&&(r+=n.z*n.z),u(r)},between:function(t,e,n){return e<=t&&t<=n||p.approximately(t,e)||p.approximately(t,n)},approximately:function(t,e,r){return n(t-e)<=(r||1e-6)},length:function(t){var e,n,r=0,i=p.Tvalues.length;for(e=0;e<i;e++)n=.5*p.Tvalues[e]+.5,r+=p.Cvalues[e]*p.arcfn(n,t);return.5*r},map:function(t,e,n,r,i){return r+(i-r)*((t-e)/(n-e))},lerp:function(t,e,n){var r={x:e.x+t*(n.x-e.x),y:e.y+t*(n.y-e.y)};return e.z&&n.z&&(r.z=e.z+t*(n.z-e.z)),r},pointToString:function(t){var e=t.x+"/"+t.y;return void 0!==t.z&&(e+="/"+t.z),e},pointsToString:function(t){return"["+t.map(p.pointToString).join(", ")+"]"},copy:function(t){return JSON.parse(JSON.stringify(t))},angle:function(t,e,n){var r=e.x-t.x,i=e.y-t.y,o=n.x-t.x,u=n.y-t.y;return a(r*u-i*o,r*o+i*u)},round:function(t,e){var n=""+t,r=n.indexOf(".");return parseFloat(n.substring(0,r+1+e))},dist:function(t,e){var n=t.x-e.x,r=t.y-e.y;return u(n*n+r*r)},closest:function(t,e){var n,r,i=s(2,63);return t.forEach(function(t,o){(r=p.dist(e,t))<i&&(i=r,n=o)}),{mdist:i,mpos:n}},abcratio:function(t,e){if(2!==e&&3!==e)return!1;if(void 0===t)t=.5;else if(0===t||1===t)return t;var r=s(t,e)+s(1-t,e);return n((r-1)/r)},projectionratio:function(t,e){if(2!==e&&3!==e)return!1;if(void 0===t)t=.5;else if(0===t||1===t)return t;var n=s(1-t,e);return n/(s(t,e)+n)},lli8:function(t,e,n,r,i,o,a,u){var s=(t-n)*(o-u)-(e-r)*(i-a);return 0!=s&&{x:((t*r-e*n)*(i-a)-(t-n)*(i*u-o*a))/s,y:((t*r-e*n)*(o-u)-(e-r)*(i*u-o*a))/s}},lli4:function(t,e,n,r){var i=t.x,o=t.y,a=e.x,u=e.y,s=n.x,l=n.y,c=r.x,f=r.y;return p.lli8(i,o,a,u,s,l,c,f)},lli:function(t,e){return p.lli4(t,t.c,e,e.c)},makeline:function(e,n){var r=t("./bezier"),i=e.x,o=e.y,a=n.x,u=n.y,s=(a-i)/3,l=(u-o)/3;return new r(i,o,i+s,o+l,i+2*s,o+2*l,a,u)},findbbox:function(t){var e=d,n=d,r=v,i=v;return t.forEach(function(t){var o=t.bbox();e>o.x.min&&(e=o.x.min),n>o.y.min&&(n=o.y.min),r<o.x.max&&(r=o.x.max),i<o.y.max&&(i=o.y.max)}),{x:{min:e,mid:(e+r)/2,max:r,size:r-e},y:{min:n,mid:(n+i)/2,max:i,size:i-n}}},shapeintersections:function(t,e,n,r,i){if(!p.bboxoverlap(e,r))return[];var o=[],a=[t.startcap,t.forward,t.back,t.endcap],u=[n.startcap,n.forward,n.back,n.endcap];return a.forEach(function(e){e.virtual||u.forEach(function(r){if(!r.virtual){var a=e.intersects(r,i);a.length>0&&(a.c1=e,a.c2=r,a.s1=t,a.s2=n,o.push(a))}})}),o},makeshape:function(t,e,n){var r=e.points.length,i=t.points.length,o=p.makeline(e.points[r-1],t.points[0]),a=p.makeline(t.points[i-1],e.points[0]),u={startcap:o,forward:t,back:e,endcap:a,bbox:p.findbbox([o,t,e,a])},s=p;return u.intersections=function(t){return s.shapeintersections(u,u.bbox,t,t.bbox,n)},u},getminmax:function(t,e,n){if(!n)return{min:0,max:0};var r,i,o=d,a=v;-1===n.indexOf(0)&&(n=[0].concat(n)),-1===n.indexOf(1)&&n.push(1);for(var u=0,s=n.length;u<s;u++)r=n[u],(i=t.get(r))[e]<o&&(o=i[e]),i[e]>a&&(a=i[e]);return{min:o,mid:(o+a)/2,max:a,size:a-o}},align:function(t,e){var n=e.p1.x,o=e.p1.y,u=-a(e.p2.y-o,e.p2.x-n);return t.map(function(t){return{x:(t.x-n)*r(u)-(t.y-o)*i(u),y:(t.x-n)*i(u)+(t.y-o)*r(u)}})},roots:function(t,e){e=e||{p1:{x:0,y:0},p2:{x:1,y:0}};var n=t.length-1,i=p.align(t,e),a=function(t){return 0<=t&&t<=1};if(2===n){if(0!==(h=(d=i[0].y)-2*(v=i[1].y)+(m=i[2].y))){var s=-u(v*v-d*m),c=-d+v;return[-(s+c)/h,-(-s+c)/h].filter(a)}return v!==m&&0===h?[(2*v-m)/2*(v-m)].filter(a):[]}var h,d,v,m,y,x=i[0].y,g=i[1].y,w=i[2].y,b=(i=(3*(v=(-3*x+3*g)/(h=3*g-x-3*w+i[3].y))-(d=(3*x-6*g+3*w)/h)*d)/3)/3,z=(2*d*d*d-9*d*v+27*(m=x/h))/27,_=z/2,E=_*_+b*b*b;if(E<0){var k=-i/3,A=u(k*k*k),S=-z/(2*A),C=o(S<-1?-1:S>1?1:S),L=2*l(A);return[L*r(C/3)-d/3,L*r((C+f)/3)-d/3,L*r((C+2*f)/3)-d/3].filter(a)}if(0===E)return[2*(y=_<0?l(-_):-l(_))-d/3,-y-d/3].filter(a);var O=u(E);return[(y=l(-_+O))-l(_+O)-d/3].filter(a)},droots:function(t){if(3===t.length){var e=t[0],n=t[1],r=t[2],i=e-2*n+r;if(0!==i){var o=-u(n*n-e*r),a=-e+n;return[-(o+a)/i,-(-o+a)/i]}return n!==r&&0===i?[(2*n-r)/(2*(n-r))]:[]}if(2===t.length)return(e=t[0])!==(n=t[1])?[e/(e-n)]:[]},inflections:function(t){if(t.length<4)return[];var e=p.align(t,{p1:t[0],p2:t.slice(-1)[0]}),n=e[2].x*e[1].y,r=e[3].x*e[1].y,i=e[1].x*e[2].y,o=18*(-3*n+2*r+3*i-(f=e[3].x*e[2].y)),a=18*(3*n-r-3*i),u=18*(i-n);if(p.approximately(o,0)){if(!p.approximately(a,0)){var s=-u/a;if(0<=s&&s<=1)return[s]}return[]}var l=a*a-4*o*u,c=Math.sqrt(l),f=2*o;return p.approximately(f,0)?[]:[(c-a)/f,-(a+c)/f].filter(function(t){return 0<=t&&t<=1})},bboxoverlap:function(t,e){var r,i,o,a,u,s=["x","y"],l=s.length;for(r=0;r<l;r++)if(o=t[i=s[r]].mid,a=e[i].mid,u=(t[i].size+e[i].size)/2,n(o-a)>=u)return!1;return!0},expandbox:function(t,e){e.x.min<t.x.min&&(t.x.min=e.x.min),e.y.min<t.y.min&&(t.y.min=e.y.min),e.z&&e.z.min<t.z.min&&(t.z.min=e.z.min),e.x.max>t.x.max&&(t.x.max=e.x.max),e.y.max>t.y.max&&(t.y.max=e.y.max),e.z&&e.z.max>t.z.max&&(t.z.max=e.z.max),t.x.mid=(t.x.min+t.x.max)/2,t.y.mid=(t.y.min+t.y.max)/2,t.z&&(t.z.mid=(t.z.min+t.z.max)/2),t.x.size=t.x.max-t.x.min,t.y.size=t.y.max-t.y.min,t.z&&(t.z.size=t.z.max-t.z.min)},pairiteration:function(t,e,n){var r=t.bbox(),i=e.bbox(),o=1e5,a=n||.5;if(r.x.size+r.y.size<a&&i.x.size+i.y.size<a)return[(o*(t._t1+t._t2)/2|0)/o+"/"+(o*(e._t1+e._t2)/2|0)/o];var u=t.split(.5),s=e.split(.5),l=[{left:u.left,right:s.left},{left:u.left,right:s.right},{left:u.right,right:s.right},{left:u.right,right:s.left}];l=l.filter(function(t){return p.bboxoverlap(t.left.bbox(),t.right.bbox())});var c=[];return 0===l.length?c:(l.forEach(function(t){c=c.concat(p.pairiteration(t.left,t.right,a))}),c=c.filter(function(t,e){return c.indexOf(t)===e}))},getccenter:function(t,e,n){var o,u=e.x-t.x,s=e.y-t.y,l=n.x-e.x,c=n.y-e.y,d=u*r(h)-s*i(h),v=u*i(h)+s*r(h),m=l*r(h)-c*i(h),y=l*i(h)+c*r(h),x=(t.x+e.x)/2,g=(t.y+e.y)/2,w=(e.x+n.x)/2,b=(e.y+n.y)/2,z=x+d,_=g+v,E=w+m,k=b+y,A=p.lli8(x,g,z,_,w,b,E,k),S=p.dist(A,t),C=a(t.y-A.y,t.x-A.x),L=a(e.y-A.y,e.x-A.x),O=a(n.y-A.y,n.x-A.x);return C<O?((C>L||L>O)&&(C+=f),C>O&&(o=O,O=C,C=o)):O<L&&L<C?(o=O,O=C,C=o):O+=f,A.s=C,A.e=O,A.r=S,A}};e.exports=p}()},{"./bezier":10}],13:[function(t,e,n){var r=Object.create||function(t){var e=function(){};return e.prototype=t,new e},i=Object.keys||function(t){var e=[];for(var n in t)Object.prototype.hasOwnProperty.call(t,n)&&e.push(n);return n},o=Function.prototype.bind||function(t){var e=this;return function(){return e.apply(t,arguments)}};function a(){this._events&&Object.prototype.hasOwnProperty.call(this,"_events")||(this._events=r(null),this._eventsCount=0),this._maxListeners=this._maxListeners||void 0}e.exports=a,a.EventEmitter=a,a.prototype._events=void 0,a.prototype._maxListeners=void 0;var u,s=10;try{var l={};Object.defineProperty&&Object.defineProperty(l,"x",{value:0}),u=0===l.x}catch(t){u=!1}function c(t){return void 0===t._maxListeners?a.defaultMaxListeners:t._maxListeners}function f(t,e,n,i){var o,a,u;if("function"!=typeof n)throw new TypeError('"listener" argument must be a function');if((a=t._events)?(a.newListener&&(t.emit("newListener",e,n.listener?n.listener:n),a=t._events),u=a[e]):(a=t._events=r(null),t._eventsCount=0),u){if("function"==typeof u?u=a[e]=i?[n,u]:[u,n]:i?u.unshift(n):u.push(n),!u.warned&&(o=c(t))&&o>0&&u.length>o){u.warned=!0;var s=new Error("Possible EventEmitter memory leak detected. "+u.length+' "'+String(e)+'" listeners added. Use emitter.setMaxListeners() to increase limit.');s.name="MaxListenersExceededWarning",s.emitter=t,s.type=e,s.count=u.length,"object"==typeof console&&console.warn&&console.warn("%s: %s",s.name,s.message)}}else u=a[e]=n,++t._eventsCount;return t}function h(){if(!this.fired)switch(this.target.removeListener(this.type,this.wrapFn),this.fired=!0,arguments.length){case 0:return this.listener.call(this.target);case 1:return this.listener.call(this.target,arguments[0]);case 2:return this.listener.call(this.target,arguments[0],arguments[1]);case 3:return this.listener.call(this.target,arguments[0],arguments[1],arguments[2]);default:for(var t=new Array(arguments.length),e=0;e<t.length;++e)t[e]=arguments[e];this.listener.apply(this.target,t)}}function d(t,e,n){var r={fired:!1,wrapFn:void 0,target:t,type:e,listener:n},i=o.call(h,r);return i.listener=n,r.wrapFn=i,i}function v(t){var e=this._events;if(e){var n=e[t];if("function"==typeof n)return 1;if(n)return n.length}return 0}function p(t,e){for(var n=new Array(e),r=0;r<e;++r)n[r]=t[r];return n}u?Object.defineProperty(a,"defaultMaxListeners",{enumerable:!0,get:function(){return s},set:function(t){if("number"!=typeof t||t<0||t!=t)throw new TypeError('"defaultMaxListeners" must be a positive number');s=t}}):a.defaultMaxListeners=s,a.prototype.setMaxListeners=function(t){if("number"!=typeof t||t<0||isNaN(t))throw new TypeError('"n" argument must be a positive number');return this._maxListeners=t,this},a.prototype.getMaxListeners=function(){return c(this)},a.prototype.emit=function(t){var e,n,r,i,o,a,u="error"===t;if(a=this._events)u=u&&null==a.error;else if(!u)return!1;if(u){if(arguments.length>1&&(e=arguments[1]),e instanceof Error)throw e;var s=new Error('Unhandled "error" event. ('+e+")");throw s.context=e,s}if(!(n=a[t]))return!1;var l="function"==typeof n;switch(r=arguments.length){case 1:!function(t,e,n){if(e)t.call(n);else for(var r=t.length,i=p(t,r),o=0;o<r;++o)i[o].call(n)}(n,l,this);break;case 2:!function(t,e,n,r){if(e)t.call(n,r);else for(var i=t.length,o=p(t,i),a=0;a<i;++a)o[a].call(n,r)}(n,l,this,arguments[1]);break;case 3:!function(t,e,n,r,i){if(e)t.call(n,r,i);else for(var o=t.length,a=p(t,o),u=0;u<o;++u)a[u].call(n,r,i)}(n,l,this,arguments[1],arguments[2]);break;case 4:!function(t,e,n,r,i,o){if(e)t.call(n,r,i,o);else for(var a=t.length,u=p(t,a),s=0;s<a;++s)u[s].call(n,r,i,o)}(n,l,this,arguments[1],arguments[2],arguments[3]);break;default:for(i=new Array(r-1),o=1;o<r;o++)i[o-1]=arguments[o];!function(t,e,n,r){if(e)t.apply(n,r);else for(var i=t.length,o=p(t,i),a=0;a<i;++a)o[a].apply(n,r)}(n,l,this,i)}return!0},a.prototype.addListener=function(t,e){return f(this,t,e,!1)},a.prototype.on=a.prototype.addListener,a.prototype.prependListener=function(t,e){return f(this,t,e,!0)},a.prototype.once=function(t,e){if("function"!=typeof e)throw new TypeError('"listener" argument must be a function');return this.on(t,d(this,t,e)),this},a.prototype.prependOnceListener=function(t,e){if("function"!=typeof e)throw new TypeError('"listener" argument must be a function');return this.prependListener(t,d(this,t,e)),this},a.prototype.removeListener=function(t,e){var n,i,o,a,u;if("function"!=typeof e)throw new TypeError('"listener" argument must be a function');if(!(i=this._events))return this;if(!(n=i[t]))return this;if(n===e||n.listener===e)0==--this._eventsCount?this._events=r(null):(delete i[t],i.removeListener&&this.emit("removeListener",t,n.listener||e));else if("function"!=typeof n){for(o=-1,a=n.length-1;a>=0;a--)if(n[a]===e||n[a].listener===e){u=n[a].listener,o=a;break}if(o<0)return this;0===o?n.shift():function(t,e){for(var n=e,r=n+1,i=t.length;r<i;n+=1,r+=1)t[n]=t[r];t.pop()}(n,o),1===n.length&&(i[t]=n[0]),i.removeListener&&this.emit("removeListener",t,u||e)}return this},a.prototype.removeAllListeners=function(t){var e,n,o;if(!(n=this._events))return this;if(!n.removeListener)return 0===arguments.length?(this._events=r(null),this._eventsCount=0):n[t]&&(0==--this._eventsCount?this._events=r(null):delete n[t]),this;if(0===arguments.length){var a,u=i(n);for(o=0;o<u.length;++o)"removeListener"!==(a=u[o])&&this.removeAllListeners(a);return this.removeAllListeners("removeListener"),this._events=r(null),this._eventsCount=0,this}if("function"==typeof(e=n[t]))this.removeListener(t,e);else if(e)for(o=e.length-1;o>=0;o--)this.removeListener(t,e[o]);return this},a.prototype.listeners=function(t){var e,n=this._events;return n&&(e=n[t])?"function"==typeof e?[e.listener||e]:function(t){for(var e=new Array(t.length),n=0;n<e.length;++n)e[n]=t[n].listener||t[n];return e}(e):[]},a.listenerCount=function(t,e){return"function"==typeof t.listenerCount?t.listenerCount(e):v.call(t,e)},a.prototype.listenerCount=v,a.prototype.eventNames=function(){return this._eventsCount>0?Reflect.ownKeys(this._events):[]}},{}],14:[function(t,e,n){(function(t){!function(){"use strict";function n(t,e,n,r,i,o){return{tag:t,key:e,attrs:n,children:r,text:i,dom:o,domSize:void 0,state:void 0,_state:void 0,events:void 0,instance:void 0,skip:!1}}n.normalize=function(t){return Array.isArray(t)?n("[",void 0,void 0,n.normalizeChildren(t),void 0,void 0):null!=t&&"object"!=typeof t?n("#",void 0,void 0,!1===t?"":t,void 0,void 0):t},n.normalizeChildren=function(t){for(var e=0;e<t.length;e++)t[e]=n.normalize(t[e]);return t};var r=/(?:(^|#|\.)([^#\.\[\]]+))|(\[(.+?)(?:\s*=\s*("|'|)((?:\\["'\]]|.)*?)\5)?\])/g,i={},o={}.hasOwnProperty;function a(t){for(var e in t)if(o.call(t,e))return!1;return!0}function u(t){var e,u=arguments[1],s=2;if(null==t||"string"!=typeof t&&"function"!=typeof t&&"function"!=typeof t.view)throw Error("The selector must be either a string or a component.");if("string"==typeof t)var l=i[t]||function(t){for(var e,n="div",o=[],a={};e=r.exec(t);){var u=e[1],s=e[2];if(""===u&&""!==s)n=s;else if("#"===u)a.id=s;else if("."===u)o.push(s);else if("["===e[3][0]){var l=e[6];l&&(l=l.replace(/\\(["'])/g,"$1").replace(/\\\\/g,"\\")),"class"===e[4]?o.push(l):a[e[4]]=""===l?l:l||!0}}return o.length>0&&(a.className=o.join(" ")),i[t]={tag:n,attrs:a}}(t);if(null==u?u={}:("object"!=typeof u||null!=u.tag||Array.isArray(u))&&(u={},s=1),arguments.length===s+1)e=arguments[s],Array.isArray(e)||(e=[e]);else for(e=[];s<arguments.length;)e.push(arguments[s++]);var c=n.normalizeChildren(e);return"string"==typeof t?function(t,e,r){var i,u,s=!1,l=e.className||e.class;if(!a(t.attrs)&&!a(e)){var c={};for(var f in e)o.call(e,f)&&(c[f]=e[f]);e=c}for(var f in t.attrs)o.call(t.attrs,f)&&(e[f]=t.attrs[f]);for(var f in void 0!==l&&(void 0!==e.class&&(e.class=void 0,e.className=l),null!=t.attrs.className&&(e.className=t.attrs.className+" "+l)),e)if(o.call(e,f)&&"key"!==f){s=!0;break}return Array.isArray(r)&&1===r.length&&null!=r[0]&&"#"===r[0].tag?u=r[0].children:i=r,n(t.tag,e.key,s?e:void 0,i,u)}(l,u,c):n(t,u.key,u,c)}u.trust=function(t){return null==t&&(t=""),n("<",void 0,void 0,t,void 0,void 0)},u.fragment=function(t,e){return n("[",t.key,t,n.normalizeChildren(e),void 0,void 0)};var s=u;if((l=function(t){if(!(this instanceof l))throw new Error("Promise must be called with `new`");if("function"!=typeof t)throw new TypeError("executor must be a function");var e=this,n=[],r=[],i=s(n,!0),o=s(r,!1),a=e._instance={resolvers:n,rejectors:r},u="function"==typeof setImmediate?setImmediate:setTimeout;function s(t,i){return function s(l){var f;try{if(!i||null==l||"object"!=typeof l&&"function"!=typeof l||"function"!=typeof(f=l.then))u(function(){i||0!==t.length||console.error("Possible unhandled promise rejection:",l);for(var e=0;e<t.length;e++)t[e](l);n.length=0,r.length=0,a.state=i,a.retry=function(){s(l)}});else{if(l===e)throw new TypeError("Promise can't be resolved w/ itself");c(f.bind(l))}}catch(t){o(t)}}}function c(t){var e=0;function n(t){return function(n){e++>0||t(n)}}var r=n(o);try{t(n(i),r)}catch(t){r(t)}}c(t)}).prototype.then=function(t,e){var n,r,i=this._instance;function o(t,e,o,a){e.push(function(e){if("function"!=typeof t)o(e);else try{n(t(e))}catch(t){r&&r(t)}}),"function"==typeof i.retry&&a===i.state&&i.retry()}var a=new l(function(t,e){n=t,r=e});return o(t,i.resolvers,n,!0),o(e,i.rejectors,r,!1),a},l.prototype.catch=function(t){return this.then(null,t)},l.resolve=function(t){return t instanceof l?t:new l(function(e){e(t)})},l.reject=function(t){return new l(function(e,n){n(t)})},l.all=function(t){return new l(function(e,n){var r=t.length,i=0,o=[];if(0===t.length)e([]);else for(var a=0;a<t.length;a++)!function(a){function u(t){i++,o[a]=t,i===r&&e(o)}null==t[a]||"object"!=typeof t[a]&&"function"!=typeof t[a]||"function"!=typeof t[a].then?u(t[a]):t[a].then(u,n)}(a)})},l.race=function(t){return new l(function(e,n){for(var r=0;r<t.length;r++)t[r].then(e,n)})},"undefined"!=typeof window){void 0===window.Promise&&(window.Promise=l);var l=window.Promise}else if(void 0!==t){void 0===t.Promise&&(t.Promise=l);l=t.Promise}var c=function(t){if("[object Object]"!==Object.prototype.toString.call(t))return"";var e=[];for(var n in t)r(n,t[n]);return e.join("&");function r(t,n){if(Array.isArray(n))for(var i=0;i<n.length;i++)r(t+"["+i+"]",n[i]);else if("[object Object]"===Object.prototype.toString.call(n))for(var i in n)r(t+"["+i+"]",n[i]);else e.push(encodeURIComponent(t)+(null!=n&&""!==n?"="+encodeURIComponent(n):""))}},f=new RegExp("^file://","i"),h=function(t,e){var n,r=0;function i(){var t=0;function e(){0==--t&&"function"==typeof n&&n()}return function n(r){var i=r.then;return r.then=function(){t++;var o=i.apply(r,arguments);return o.then(e,function(n){if(e(),0===t)throw n}),n(o)},r}}function o(t,e){if("string"==typeof t){var n=t;null==(t=e||{}).url&&(t.url=n)}return t}function a(t,e){if(null==e)return t;for(var n=t.match(/:[^\/]+/gi)||[],r=0;r<n.length;r++){var i=n[r].slice(1);null!=e[i]&&(t=t.replace(n[r],e[i]))}return t}function u(t,e){var n=c(e);return""!==n&&(t+=(t.indexOf("?")<0?"?":"&")+n),t}function s(t){try{return""!==t?JSON.parse(t):null}catch(e){throw new Error(t)}}function l(t){return t.responseText}function h(t,e){if("function"==typeof t){if(!Array.isArray(e))return new t(e);for(var n=0;n<e.length;n++)e[n]=new t(e[n])}return e}return{request:function(n,r){var c=i();n=o(n,r);var d=new e(function(e,r){null==n.method&&(n.method="GET"),n.method=n.method.toUpperCase();var i="GET"!==n.method&&"TRACE"!==n.method&&("boolean"!=typeof n.useBody||n.useBody);"function"!=typeof n.serialize&&(n.serialize="undefined"!=typeof FormData&&n.data instanceof FormData?function(t){return t}:JSON.stringify),"function"!=typeof n.deserialize&&(n.deserialize=s),"function"!=typeof n.extract&&(n.extract=l),n.url=a(n.url,n.data),i?n.data=n.serialize(n.data):n.url=u(n.url,n.data);var o=new t.XMLHttpRequest,c=!1,d=o.abort;for(var v in o.abort=function(){c=!0,d.call(o)},o.open(n.method,n.url,"boolean"!=typeof n.async||n.async,"string"==typeof n.user?n.user:void 0,"string"==typeof n.password?n.password:void 0),n.serialize!==JSON.stringify||!i||n.headers&&n.headers.hasOwnProperty("Content-Type")||o.setRequestHeader("Content-Type","application/json; charset=utf-8"),n.deserialize!==s||n.headers&&n.headers.hasOwnProperty("Accept")||o.setRequestHeader("Accept","application/json, text/*"),n.withCredentials&&(o.withCredentials=n.withCredentials),n.headers)({}).hasOwnProperty.call(n.headers,v)&&o.setRequestHeader(v,n.headers[v]);"function"==typeof n.config&&(o=n.config(o,n)||o),o.onreadystatechange=function(){if(!c&&4===o.readyState)try{var t=n.extract!==l?n.extract(o,n):n.deserialize(n.extract(o,n));if(o.status>=200&&o.status<300||304===o.status||f.test(n.url))e(h(n.type,t));else{var i=new Error(o.responseText);for(var a in t)i[a]=t[a];r(i)}}catch(t){r(t)}},i&&null!=n.data?o.send(n.data):o.send()});return!0===n.background?d:c(d)},jsonp:function(n,s){var l=i();n=o(n,s);var c=new e(function(e,i){var o=n.callbackName||"_mithril_"+Math.round(1e16*Math.random())+"_"+r++,s=t.document.createElement("script");t[o]=function(r){s.parentNode.removeChild(s),e(h(n.type,r)),delete t[o]},s.onerror=function(){s.parentNode.removeChild(s),i(new Error("JSONP request failed")),delete t[o]},null==n.data&&(n.data={}),n.url=a(n.url,n.data),n.data[n.callbackKey||"callback"]=o,s.src=u(n.url,n.data),t.document.documentElement.appendChild(s)});return!0===n.background?c:l(c)},setCompletionCallback:function(t){n=t}}}(window,l),d=function(t){var e,r=t.document,i=r.createDocumentFragment(),o={svg:"http://www.w3.org/2000/svg",math:"http://www.w3.org/1998/Math/MathML"};function a(t){return t.attrs&&t.attrs.xmlns||o[t.tag]}function u(t,e,n,r,i,o,a){for(var u=n;u<r;u++){var l=e[u];null!=l&&s(t,l,i,a,o)}}function s(t,e,o,f,h){var d=e.tag;if("string"!=typeof d)return function(t,e,n,r,o){if(c(e,n),null!=e.instance){var a=s(t,e.instance,n,r,o);return e.dom=e.instance.dom,e.domSize=null!=e.dom?e.instance.domSize:0,m(t,a,o),a}return e.domSize=0,i}(t,e,o,f,h);switch(e.state={},null!=e.attrs&&E(e.attrs,e,o),d){case"#":return function(t,e,n){return e.dom=r.createTextNode(e.children),m(t,e.dom,n),e.dom}(t,e,h);case"<":return l(t,e,h);case"[":return function(t,e,n,i,o){var a=r.createDocumentFragment();if(null!=e.children){var s=e.children;u(a,s,0,s.length,n,null,i)}return e.dom=a.firstChild,e.domSize=a.childNodes.length,m(t,a,o),a}(t,e,o,f,h);default:return function(t,e,i,o,s){var l=e.tag,c=e.attrs,f=c&&c.is,h=(o=a(e)||o)?f?r.createElementNS(o,l,{is:f}):r.createElementNS(o,l):f?r.createElement(l,{is:f}):r.createElement(l);e.dom=h,null!=c&&function(t,e,n){for(var r in e)b(t,r,null,e[r],n)}(e,c,o);if(m(t,h,s),null!=e.attrs&&null!=e.attrs.contenteditable)y(e);else if(null!=e.text&&(""!==e.text?h.textContent=e.text:e.children=[n("#",void 0,void 0,e.text,void 0,void 0)]),null!=e.children){var d=e.children;u(h,d,0,d.length,i,null,o),function(t){var e=t.attrs;"select"===t.tag&&null!=e&&("value"in e&&b(t,"value",null,e.value,void 0),"selectedIndex"in e&&b(t,"selectedIndex",null,e.selectedIndex,void 0))}(e)}return h}(t,e,o,f,h)}}function l(t,e,n){var i={caption:"table",thead:"table",tbody:"table",tfoot:"table",tr:"tbody",th:"tr",td:"tr",colgroup:"table",col:"colgroup"}[(e.children.match(/^\s*?<(\w+)/im)||[])[1]]||"div",o=r.createElement(i);o.innerHTML=e.children,e.dom=o.firstChild,e.domSize=o.childNodes.length;for(var a,u=r.createDocumentFragment();a=o.firstChild;)u.appendChild(a);return m(t,u,n),u}function c(t,e){var r;if("function"==typeof t.tag.view){if(t.state=Object.create(t.tag),null!=(r=t.state.view).$$reentrantLock$$)return i;r.$$reentrantLock$$=!0}else{if(t.state=void 0,null!=(r=t.tag).$$reentrantLock$$)return i;r.$$reentrantLock$$=!0,t.state=null!=t.tag.prototype&&"function"==typeof t.tag.prototype.view?new t.tag(t):t.tag(t)}if(t._state=t.state,null!=t.attrs&&E(t.attrs,t,e),E(t._state,t,e),t.instance=n.normalize(t._state.view.call(t.state,t)),t.instance===t)throw Error("A view cannot return the vnode it received as argument");r.$$reentrantLock$$=null}function f(t,e,n,r,i,o,a){if(e!==n&&(null!=e||null!=n))if(null==e)u(t,n,0,n.length,i,o,a);else if(null==n)x(e,0,e.length,n);else{if(e.length===n.length){for(var l=!1,c=0;c<n.length;c++)if(null!=n[c]&&null!=e[c]){l=null==n[c].key&&null==e[c].key;break}if(l){for(c=0;c<e.length;c++)e[c]!==n[c]&&(null==e[c]&&null!=n[c]?s(t,n[c],i,a,p(e,c+1,o)):null==n[c]?x(e,c,c+1,n):h(t,e[c],n[c],i,p(e,c+1,o),r,a));return}}if(r=r||function(t,e){if(null!=t.pool&&Math.abs(t.pool.length-e.length)<=Math.abs(t.length-e.length)){var n=t[0]&&t[0].children&&t[0].children.length||0,r=t.pool[0]&&t.pool[0].children&&t.pool[0].children.length||0,i=e[0]&&e[0].children&&e[0].children.length||0;if(Math.abs(r-i)<=Math.abs(n-i))return!0}return!1}(e,n)){var f=e.pool;e=e.concat(e.pool)}for(var y,g=0,w=0,b=e.length-1,z=n.length-1;b>=g&&z>=w;){if((E=e[g])!==(k=n[w])||r)if(null==E)g++;else if(null==k)w++;else if(E.key===k.key){var _=null!=f&&g>=e.length-f.length||null==f&&r;w++,h(t,E,k,i,p(e,++g,o),_,a),r&&E.tag===k.tag&&m(t,v(E),o)}else{if((E=e[b])!==k||r)if(null==E)b--;else if(null==k)w++;else{if(E.key!==k.key)break;_=null!=f&&b>=e.length-f.length||null==f&&r;h(t,E,k,i,p(e,b+1,o),_,a),(r||w<z)&&m(t,v(E),p(e,g,o)),b--,w++}else b--,w++}else g++,w++}for(;b>=g&&z>=w;){var E,k;if((E=e[b])!==(k=n[z])||r)if(null==E)b--;else if(null==k)z--;else if(E.key===k.key){_=null!=f&&b>=e.length-f.length||null==f&&r;h(t,E,k,i,p(e,b+1,o),_,a),r&&E.tag===k.tag&&m(t,v(E),o),null!=E.dom&&(o=E.dom),b--,z--}else{if(y||(y=d(e,b)),null!=k){var A=y[k.key];if(null!=A){var S=e[A];_=null!=f&&A>=e.length-f.length||null==f&&r;h(t,S,k,i,p(e,b+1,o),r,a),m(t,v(S),o),e[A].skip=!0,null!=S.dom&&(o=S.dom)}else{o=s(t,k,i,a,o)}}z--}else b--,z--;if(z<w)break}u(t,n,w,z+1,i,o,a),x(e,g,b+1,n)}}function h(t,e,r,i,o,u,d){var p=e.tag;if(p===r.tag){if(r.state=e.state,r._state=e._state,r.events=e.events,!u&&function(t,e){var n,r;null!=t.attrs&&"function"==typeof t.attrs.onbeforeupdate&&(n=t.attrs.onbeforeupdate.call(t.state,t,e));"string"!=typeof t.tag&&"function"==typeof t._state.onbeforeupdate&&(r=t._state.onbeforeupdate.call(t.state,t,e));if(!(void 0===n&&void 0===r||n||r))return t.dom=e.dom,t.domSize=e.domSize,t.instance=e.instance,!0;return!1}(r,e))return;if("string"==typeof p)switch(null!=r.attrs&&(u?(r.state={},E(r.attrs,r,i)):k(r.attrs,r,i)),p){case"#":!function(t,e){t.children.toString()!==e.children.toString()&&(t.dom.nodeValue=e.children);e.dom=t.dom}(e,r);break;case"<":!function(t,e,n,r){e.children!==n.children?(v(e),l(t,n,r)):(n.dom=e.dom,n.domSize=e.domSize)}(t,e,r,o);break;case"[":!function(t,e,n,r,i,o,a){f(t,e.children,n.children,r,i,o,a);var u=0,s=n.children;if(n.dom=null,null!=s){for(var l=0;l<s.length;l++){var c=s[l];null!=c&&null!=c.dom&&(null==n.dom&&(n.dom=c.dom),u+=c.domSize||1)}1!==u&&(n.domSize=u)}}(t,e,r,u,i,o,d);break;default:!function(t,e,r,i,o){var u=e.dom=t.dom;o=a(e)||o,"textarea"===e.tag&&(null==e.attrs&&(e.attrs={}),null!=e.text&&(e.attrs.value=e.text,e.text=void 0));(function(t,e,n,r){if(null!=n)for(var i in n)b(t,i,e&&e[i],n[i],r);if(null!=e)for(var i in e)null!=n&&i in n||("className"===i&&(i="class"),"o"!==i[0]||"n"!==i[1]||z(i)?"key"!==i&&t.dom.removeAttribute(i):_(t,i,void 0))})(e,t.attrs,e.attrs,o),null!=e.attrs&&null!=e.attrs.contenteditable?y(e):null!=t.text&&null!=e.text&&""!==e.text?t.text.toString()!==e.text.toString()&&(t.dom.firstChild.nodeValue=e.text):(null!=t.text&&(t.children=[n("#",void 0,void 0,t.text,void 0,t.dom.firstChild)]),null!=e.text&&(e.children=[n("#",void 0,void 0,e.text,void 0,void 0)]),f(u,t.children,e.children,r,i,null,o))}(e,r,u,i,d)}else!function(t,e,r,i,o,a,u){if(a)c(r,i);else{if(r.instance=n.normalize(r._state.view.call(r.state,r)),r.instance===r)throw Error("A view cannot return the vnode it received as argument");null!=r.attrs&&k(r.attrs,r,i),k(r._state,r,i)}null!=r.instance?(null==e.instance?s(t,r.instance,i,u,o):h(t,e.instance,r.instance,i,o,a,u),r.dom=r.instance.dom,r.domSize=r.instance.domSize):null!=e.instance?(g(e.instance,null),r.dom=void 0,r.domSize=0):(r.dom=e.dom,r.domSize=e.domSize)}(t,e,r,i,o,u,d)}else g(e,null),s(t,r,i,d,o)}function d(t,e){var n={},r=0;for(r=0;r<e;r++){var i=t[r];if(null!=i){var o=i.key;null!=o&&(n[o]=r)}}return n}function v(t){var e=t.domSize;if(null!=e||null==t.dom){var n=r.createDocumentFragment();if(e>0){for(var i=t.dom;--e;)n.appendChild(i.nextSibling);n.insertBefore(i,n.firstChild)}return n}return t.dom}function p(t,e,n){for(;e<t.length;e++)if(null!=t[e]&&null!=t[e].dom)return t[e].dom;return n}function m(t,e,n){n&&n.parentNode?t.insertBefore(e,n):t.appendChild(e)}function y(t){var e=t.children;if(null!=e&&1===e.length&&"<"===e[0].tag){var n=e[0].children;t.dom.innerHTML!==n&&(t.dom.innerHTML=n)}else if(null!=t.text||null!=e&&0!==e.length)throw new Error("Child node of a contenteditable must be trusted")}function x(t,e,n,r){for(var i=e;i<n;i++){var o=t[i];null!=o&&(o.skip?o.skip=!1:g(o,r))}}function g(t,e){var n,r=1,i=0;t.attrs&&"function"==typeof t.attrs.onbeforeremove&&(null!=(n=t.attrs.onbeforeremove.call(t.state,t))&&"function"==typeof n.then&&(r++,n.then(o,o)));"string"!=typeof t.tag&&"function"==typeof t._state.onbeforeremove&&(null!=(n=t._state.onbeforeremove.call(t.state,t))&&"function"==typeof n.then&&(r++,n.then(o,o)));function o(){if(++i===r&&(function t(e){e.attrs&&"function"==typeof e.attrs.onremove&&e.attrs.onremove.call(e.state,e);if("string"!=typeof e.tag)"function"==typeof e._state.onremove&&e._state.onremove.call(e.state,e),null!=e.instance&&t(e.instance);else{var n=e.children;if(Array.isArray(n))for(var r=0;r<n.length;r++){var i=n[r];null!=i&&t(i)}}}(t),t.dom)){var n=t.domSize||1;if(n>1)for(var o=t.dom;--n;)w(o.nextSibling);w(t.dom),null==e||null!=t.domSize||null!=(a=t.attrs)&&(a.oncreate||a.onupdate||a.onbeforeremove||a.onremove)||"string"!=typeof t.tag||(e.pool?e.pool.push(t):e.pool=[t])}var a}o()}function w(t){var e=t.parentNode;null!=e&&e.removeChild(t)}function b(t,e,n,i,o){var a=t.dom;if("key"!==e&&"is"!==e&&(n!==i||function(t,e){return"value"===e||"checked"===e||"selectedIndex"===e||"selected"===e&&t.dom===r.activeElement}(t,e)||"object"==typeof i)&&void 0!==i&&!z(e)){var u,s=e.indexOf(":");if(s>-1&&"xlink"===e.substr(0,s))a.setAttributeNS("http://www.w3.org/1999/xlink",e.slice(s+1),i);else if("o"===e[0]&&"n"===e[1]&&"function"==typeof i)_(t,e,i);else if("style"===e)!function(t,e,n){e===n&&(t.style.cssText="",e=null);if(null==n)t.style.cssText="";else if("string"==typeof n)t.style.cssText=n;else{for(var r in"string"==typeof e&&(t.style.cssText=""),n)t.style[r]=n[r];if(null!=e&&"string"!=typeof e)for(var r in e)r in n||(t.style[r]="")}}(a,n,i);else if(e in a&&("href"!==(u=e)&&"list"!==u&&"form"!==u&&"width"!==u&&"height"!==u)&&void 0===o&&!function(t){return t.attrs.is||t.tag.indexOf("-")>-1}(t)){if("value"===e){var l=""+i;if(("input"===t.tag||"textarea"===t.tag)&&t.dom.value===l&&t.dom===r.activeElement)return;if("select"===t.tag)if(null===i){if(-1===t.dom.selectedIndex&&t.dom===r.activeElement)return}else if(null!==n&&t.dom.value===l&&t.dom===r.activeElement)return;if("option"===t.tag&&null!=n&&t.dom.value===l)return}if("input"===t.tag&&"type"===e)return void a.setAttribute(e,i);a[e]=i}else"boolean"==typeof i?i?a.setAttribute(e,""):a.removeAttribute(e):a.setAttribute("className"===e?"class":e,i)}}function z(t){return"oninit"===t||"oncreate"===t||"onupdate"===t||"onremove"===t||"onbeforeremove"===t||"onbeforeupdate"===t}function _(t,n,r){var i=t.dom,o="function"!=typeof e?r:function(t){var n=r.call(i,t);return e.call(i,t),n};if(n in i)i[n]="function"==typeof r?o:null;else{var a=n.slice(2);if(void 0===t.events&&(t.events={}),t.events[n]===o)return;null!=t.events[n]&&i.removeEventListener(a,t.events[n],!1),"function"==typeof r&&(t.events[n]=o,i.addEventListener(a,t.events[n],!1))}}function E(t,e,n){"function"==typeof t.oninit&&t.oninit.call(e.state,e),"function"==typeof t.oncreate&&n.push(t.oncreate.bind(e.state,e))}function k(t,e,n){"function"==typeof t.onupdate&&n.push(t.onupdate.bind(e.state,e))}return{render:function(t,e){if(!t)throw new Error("Ensure the DOM element being passed to m.route/m.mount/m.render is not undefined.");var i=[],o=r.activeElement,a=t.namespaceURI;null==t.vnodes&&(t.textContent=""),Array.isArray(e)||(e=[e]),f(t,t.vnodes,n.normalizeChildren(e),!1,i,null,"http://www.w3.org/1999/xhtml"===a?void 0:a),t.vnodes=e,null!=o&&r.activeElement!==o&&o.focus();for(var u=0;u<i.length;u++)i[u]()},setEventCallback:function(t){return e=t}}};var v=function(t){var e=d(t);e.setEventCallback(function(t){!1===t.redraw?t.redraw=void 0:i()});var n=[];function r(t){var e=n.indexOf(t);e>-1&&n.splice(e,2)}function i(){for(var t=1;t<n.length;t+=2)n[t]()}return{subscribe:function(t,e){r(t),n.push(t,function(t){var e=0,n=null,r="function"==typeof requestAnimationFrame?requestAnimationFrame:setTimeout;return function(){var i=Date.now();0===e||i-e>=16?(e=i,t()):null===n&&(n=r(function(){n=null,t(),e=Date.now()},16-(i-e)))}}(e))},unsubscribe:r,redraw:i,render:e.render}}(window);h.setCompletionCallback(v.redraw);var p;s.mount=(p=v,function(t,e){if(null===e)return p.render(t,[]),void p.unsubscribe(t);if(null==e.view&&"function"!=typeof e)throw new Error("m.mount(element, component) expects a component, not a vnode");p.subscribe(t,function(){p.render(t,n(e))}),p.redraw()});var m=l,y=function(t){if(""===t||null==t)return{};"?"===t.charAt(0)&&(t=t.slice(1));for(var e=t.split("&"),n={},r={},i=0;i<e.length;i++){var o=e[i].split("="),a=decodeURIComponent(o[0]),u=2===o.length?decodeURIComponent(o[1]):"";"true"===u?u=!0:"false"===u&&(u=!1);var s=a.split(/\]\[?|\[/),l=n;a.indexOf("[")>-1&&s.pop();for(var c=0;c<s.length;c++){var f=s[c],h=s[c+1],d=""==h||!isNaN(parseInt(h,10)),v=c===s.length-1;if(""===f)null==r[a=s.slice(0,c).join()]&&(r[a]=0),f=r[a]++;null==l[f]&&(l[f]=v?u:d?[]:{}),l=l[f]}}return n},x=function(t){var e,n="function"==typeof t.history.pushState,r="function"==typeof setImmediate?setImmediate:setTimeout;function i(e){var n=t.location[e].replace(/(?:%[a-f89][a-f0-9])+/gim,decodeURIComponent);return"pathname"===e&&"/"!==n[0]&&(n="/"+n),n}function o(t,e,n){var r=t.indexOf("?"),i=t.indexOf("#"),o=r>-1?r:i>-1?i:t.length;if(r>-1){var a=i>-1?i:t.length,u=y(t.slice(r+1,a));for(var s in u)e[s]=u[s]}if(i>-1){var l=y(t.slice(i+1));for(var s in l)n[s]=l[s]}return t.slice(0,o)}var a={prefix:"#!",getPath:function(){switch(a.prefix.charAt(0)){case"#":return i("hash").slice(a.prefix.length);case"?":return i("search").slice(a.prefix.length)+i("hash");default:return i("pathname").slice(a.prefix.length)+i("search")+i("hash")}},setPath:function(e,r,i){var u={},s={};if(e=o(e,u,s),null!=r){for(var l in r)u[l]=r[l];e=e.replace(/:([^\/]+)/g,function(t,e){return delete u[e],r[e]})}var f=c(u);f&&(e+="?"+f);var h=c(s);if(h&&(e+="#"+h),n){var d=i?i.state:null,v=i?i.title:null;t.onpopstate(),i&&i.replace?t.history.replaceState(d,v,a.prefix+e):t.history.pushState(d,v,a.prefix+e)}else t.location.href=a.prefix+e}};return a.defineRoutes=function(i,u,s){function l(){var e=a.getPath(),n={},r=o(e,n,n),l=t.history.state;if(null!=l)for(var c in l)n[c]=l[c];for(var f in i){var h=new RegExp("^"+f.replace(/:[^\/]+?\.{3}/g,"(.*?)").replace(/:[^\/]+/g,"([^\\/]+)")+"/?$");if(h.test(r))return void r.replace(h,function(){for(var t=f.match(/:[^\/]+/g)||[],r=[].slice.call(arguments,1,-2),o=0;o<t.length;o++)n[t[o].replace(/:|\./g,"")]=decodeURIComponent(r[o]);u(i[f],n,e,f)})}s(e,n)}var c;n?t.onpopstate=(c=l,function(){null==e&&(e=r(function(){e=null,c()}))}):"#"===a.prefix.charAt(0)&&(t.onhashchange=l),l()},a};s.route=function(t,e){var r,i,o,a,u,s=x(t),l=function(t,l,c){if(null==t)throw new Error("Ensure the DOM element that was passed to `m.route` is not undefined");var f=function(){null!=r&&e.render(t,r(n(i,o.key,o)))},h=function(t){if(t===l)throw new Error("Could not resolve default route "+l);s.setPath(l,null,{replace:!0})};s.defineRoutes(c,function(t,e,n){var s=u=function(t,l){s===u&&(i=null==l||"function"!=typeof l.view&&"function"!=typeof l?"div":l,o=e,a=n,u=null,r=(t.render||function(t){return t}).bind(t),f())};t.view||"function"==typeof t?s({},t):t.onmatch?m.resolve(t.onmatch(e,n)).then(function(e){s(t,e)},h):s(t,"div")},h),e.subscribe(t,f)};return l.set=function(t,e,n){null!=u&&((n=n||{}).replace=!0),u=null,s.setPath(t,e,n)},l.get=function(){return a},l.prefix=function(t){s.prefix=t},l.link=function(t){t.dom.setAttribute("href",s.prefix+t.attrs.href),t.dom.onclick=function(t){if(!(t.ctrlKey||t.metaKey||t.shiftKey||2===t.which)){t.preventDefault(),t.redraw=!1;var e=this.getAttribute("href");0===e.indexOf(s.prefix)&&(e=e.slice(s.prefix.length)),l.set(e,void 0,void 0)}}},l.param=function(t){return void 0!==o&&void 0!==t?o[t]:o},l}(window,v),s.withAttr=function(t,e,n){return function(r){e.call(n||this,t in r.currentTarget?r.currentTarget[t]:r.currentTarget.getAttribute(t))}};var g=d(window);s.render=g.render,s.redraw=v.redraw,s.request=h.request,s.jsonp=h.jsonp,s.parseQueryString=y,s.buildQueryString=c,s.version="1.1.6",s.vnode=n,void 0!==e?e.exports=s:window.m=s}()}).call(this,"undefined"!=typeof global?global:"undefined"!=typeof self?self:"undefined"!=typeof window?window:{})},{}]},{},[4]);
+(function(){function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s}return e})()({1:[function(require,module,exports){
+var context = new ( window.AudioContext || window.webkitAudioContext )();
+    
+var unlocked = false;
+
+var unlock = () => {
+    if ( unlocked ) return;
+    // Play silence to unlock the audio context in safari
+    var buffer = context.createBuffer(1, 1, 22050);
+    var source = context.createBufferSource();
+    source.buffer = buffer;
+    source.start( 0 );
+    unlocked = true;
+}
+
+var load = url => new Promise( resolve => {
+    var request = new XMLHttpRequest();
+    request.open('GET', url, true);
+    request.responseType = 'arraybuffer';
+    request.onload = () => resolve( request.response );
+    request.send();
+}).then( response => new Promise( resolve => {
+    context.decodeAudioData( response, resolve )
+}))
+
+var play = ( buffer, time ) => {
+    var source = context.createBufferSource();
+    source.buffer = buffer;
+    source.connect( context.destination );
+    source.start( time );
+    return source;
+}
+
+module.exports = { context, unlock, load, play };
+},{}],2:[function(require,module,exports){
+var Bezier = require('bezier-js');
+
+var CONTROL_POINT_OFFSET = 4/5;
+
+var flatten = arr => arr.reduce( ( a, b ) => a.concat( b ) );
+
+var translateX = d => point => [ point[ 0 ] + d, point[ 1 ] ];
+
+var pairwise = arr => {
+    
+    var ret = [];
+    
+    for ( var i = 0; i <= arr.length - 2; i++ ) {
+        
+        ret.push( [ arr[ i ], arr[ i + 1 ] ] );
+        
+    }
+    
+    return ret;
+    
+}
+
+var zip = ( a1, a2 ) => a1.map( ( x, i ) => [ x, a2[ i ] ] );
+
+var split = ( lessPoints, morePoints ) => {
+    
+    var connections = lessPoints.map( point => ({ point, connections: 0 }) );
+    
+    var distance = point => connection => {
+        return Math.abs( point[ 1 ] - connection.point[ 1 ] );
+    }
+    
+    var nearest = ( point, connections ) => {
+        return connections.slice().sort( distance( point ) )[ 0 ];
+    }
+    
+    var nearestEmpty = point => {
+        return nearest( point, connections.filter( c => c.connections === 0 ));
+    }
+    
+    var select = point => {
+        return nearestEmpty( point ) || nearest( point, connections );
+    }
+    
+    return morePoints.map( point => {
+        var to = select( point );
+        to.connections++;
+        return [ point, to.point ];
+    })
+    
+}
+
+var plot = ([ fromPoints, toPoints ]) => {
+    if ( fromPoints.length === toPoints.length ) {
+        return zip( fromPoints, toPoints );
+    } else if ( fromPoints.length > toPoints.length ) {
+        return split( toPoints, fromPoints )
+    } else {
+        return split( fromPoints, toPoints ).map( line => line.reverse() );
+    }
+    
+}
+
+var sortByY = ( a, b ) => {
+    if ( a[ 1 ] === b[ 1 ] ) return 0;
+    if ( a[ 1 ] < b[ 1 ] ) return  -1;
+    return 1;
+}
+
+module.exports = ( size, points ) => {
+    if ( points.length === 0 ) return [];
+    var columns = [];
+    points.forEach( point => {
+        var x = point[ 0 ];
+        if ( !columns[ x ] ) columns[ x ] = [];
+        columns[ x ].push( point );
+    });
+    // sparse to dense
+    columns = Object.values( columns ).map( column => column.sort( sortByY ) );
+    
+    var firstColumn = columns[ 0 ];
+    var lastColumn = columns[ columns.length - 1 ];
+    
+    var looped = [
+        lastColumn.map( translateX( -size[ 0 ] ) ),
+        ...columns,
+        firstColumn.map( translateX( size[ 0 ] ) )
+    ]
+    
+    var pairs = pairwise( looped );
+    
+    var lines = flatten( pairs.map( plot ) );
+    
+    return lines.map( ([ from, to ]) => {
+        
+        var offset = ( to[ 0 ] - from[ 0 ] ) * CONTROL_POINT_OFFSET;
+        
+        var cp1 = translateX( offset )( from );
+        var cp2 = translateX( -offset )( to )
+        
+        return new Bezier(
+            from[ 0 ], from[ 1 ],
+            cp1[ 0 ], cp1[ 1 ],
+            cp2[ 0 ], cp2[ 1 ],
+            to[ 0 ], to[ 1 ]
+        )
+        
+    });
+    
+}
+},{"bezier-js":9}],3:[function(require,module,exports){
+var sample = arr => arr[Math.floor(Math.random() * arr.length)];
+
+var el = document.getElementById("data");
+var html = Array.from(el.children).map(node => node.outerHTML);
+var bpm = Number(el.dataset.bpm);
+var voice = sample(el.dataset.voices.split(","));
+
+const symbols = Array(38)
+  .fill(0)
+  .map((_, i) => `./img/art${i + 1}.svg`);
+
+module.exports = { html, bpm, voice, symbols };
+
+},{}],4:[function(require,module,exports){
+var m = require("mithril");
+var { state, emitter } = require("./state");
+
+var View = require('./view/View');
+
+var onresize = () => {
+    var size = [ window.innerWidth, window.innerHeight ];
+    emitter.emit( state.events.RESIZE, size );
+};
+
+window.addEventListener( "resize", onresize );
+onresize();
+m.mount( document.body, View( state, emitter ) );
+
+emitter.emit( state.events.LOAD );
+},{"./state":5,"./view/View":8,"mithril":13}],5:[function(require,module,exports){
+var m = require("mithril");
+var EventEmitter = require("events");
+var curves = require("./curves");
+var audio = require("./audio");
+var { html, bpm, voice, symbols } = require("./data");
+
+var BREAKPOINTS = [414, 768];
+
+var emitter = new EventEmitter();
+
+var state = {
+  events: {
+    LOAD: "load",
+    RESIZE: "resize",
+    PLACE_CURSOR: "placeCursor",
+    PLACE_NOTE: "placeNote",
+    NOTE_PLAYED: "notePlayed",
+  },
+  loaded: false,
+  playing: false,
+  size: [1, 1],
+  art: [],
+  face: [-1, -1],
+  notes: html.map((html, i) => ({
+    html,
+    key: i,
+    position: [-1, -1],
+    visible: false,
+  })),
+  sounds: [
+    `./audio/${voice}_1.mp3`,
+    `./audio/${voice}_2.mp3`,
+    `./audio/${voice}_3.mp3`,
+    `./audio/${voice}_4.mp3`,
+    `./audio/${voice}_5.mp3`,
+    `./audio/${voice}_6.mp3`,
+    `./audio/${voice}_7.mp3`,
+    `./audio/${voice}_8.mp3`,
+    `./audio/${voice}_9.mp3`,
+    `./audio/${voice}_10.mp3`,
+    `./audio/${voice}_11.mp3`,
+  ],
+  cursor: false,
+  clicks: 0,
+  notesPlayed: 0,
+  beatDuration: 60 / bpm,
+  startTime: 0,
+  now: 0,
+  audioUntil: 0,
+};
+
+var sample = arr => arr[Math.floor(Math.random() * arr.length)];
+var equal = (v1, v2) => v1[0] === v2[0] && v1[1] === v2[1];
+var rand = (min, max) => min + Math.floor(Math.random() * (max - min));
+var visibleNotes = () => state.notes.filter(n => n.visible);
+var notePositions = () => {
+  return visibleNotes()
+    .map(n => n.position)
+    .concat(state.cursor ? [state.cursor] : []);
+};
+
+var updateCurves = () => {
+  state.curves = curves(state.size, notePositions());
+};
+
+var play = () => {
+  state.startTime = audio.context.currentTime;
+  state.playing = true;
+  tick();
+};
+
+var tick = () => {
+  var duration = state.beatDuration * state.size[0];
+  var now = audio.context.currentTime - state.startTime;
+  var start = state.audioUntil;
+  var end = now + 0.05;
+  var didSound = false;
+  notePositions().forEach(position => {
+    var t = position[0] * state.beatDuration;
+    while (t < start) t += duration;
+    if (t < end) {
+      var y = state.size[1] - 1 - position[1];
+      console.log(y);
+      audio.play(state.sounds[y], t + state.startTime);
+      didSound = true;
+      emitter.emit(state.events.NOTE_PLAYED, position);
+    }
+  });
+  if (didSound) {
+    state.notesPlayed++;
+    moveFace();
+  }
+  state.audioUntil = end;
+  state.now = now % duration;
+  m.redraw();
+  requestAnimationFrame(tick);
+};
+
+var moveFace = () => {
+  var filled = notePositions();
+  while (true) {
+    var position = [rand(0, state.size[0]), rand(0, state.size[1])];
+    if (!filled.some(p => equal(position, p))) {
+      state.face = position;
+      return;
+    }
+  }
+};
+
+// var updateArt = () => {
+//   var max = Math.min(
+//     Math.floor((state.size[0] * state.size[1]) / 10),
+//     state.notesPlayed
+//   );
+//   var numToRemove = state.art.length === max ? 2 : 1;
+
+//   for (var i = 0; i < numToRemove; i++) {
+//     if (state.art.length === 0) break;
+//     var idxToRemove = Math.floor(Math.random() * state.art.length);
+//     state.art.splice(idxToRemove, 1);
+//   }
+
+//   var numToAdd = Math.min(2, max - state.art.length);
+
+//   for (var i = 0; i < numToAdd; i++) {
+//     var empty = emptyPositions();
+//     if (!empty.length) return;
+//     var position = sample(empty);
+//     var srcs = artSrcs.filter(src => !state.art.some(art => art.src === src));
+//     if (!srcs.length) return;
+//     state.art.push({ position, src: sample(srcs), key: Math.random() });
+//   }
+// };
+
+var reset = () => {
+  state.clicks = 0;
+  state.notes.forEach(n => (n.visible = false));
+  state.face = [-1, -1];
+  state.cursor =
+    "ontouchstart" in window
+      ? false
+      : [Math.floor(state.size[0] / 2), Math.floor(state.size[1] / 2)];
+  updateCurves();
+};
+
+const loadImage = src =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+
+const loadSounds = () =>
+  Promise.all(state.sounds.map(audio.load)).then(buffers => {
+    state.sounds = buffers;
+  });
+
+const loadSymbols = () => Promise.all(symbols.map(loadImage));
+
+emitter.on(state.events.LOAD, () =>
+  Promise.all([loadSounds(), loadSymbols()]).then(() => {
+    state.loaded = true;
+    if (audio.context.state === "running") {
+      play();
+    } else {
+      m.redraw();
+    }
+  })
+);
+
+emitter.on(state.events.RESIZE, viewport => {
+  var prev = state.size;
+  if (viewport[0] <= BREAKPOINTS[0]) {
+    state.size = [4, 7];
+  } else {
+    state.size = [8, 11];
+  }
+  state.cellSize = [viewport[0] / state.size[0], viewport[1] / state.size[1]];
+  if (!equal(prev, state.size)) reset();
+  m.redraw();
+});
+
+emitter.on(state.events.PLACE_NOTE, position => {
+  audio.unlock();
+  if (!state.playing) play();
+  if (state.notes.some(note => equal(position, note.position))) return;
+  var note = state.notes[state.clicks % state.notes.length];
+  note.position = position;
+  note.visible = true;
+  state.clicks++;
+  state.cursor = false;
+  updateCurves();
+});
+
+emitter.on(state.events.PLACE_CURSOR, position => {
+  if (position !== false) {
+    var overlaps = visibleNotes().some(note => equal(position, note.position));
+    state.cursor = !overlaps && position;
+  } else {
+    state.cursor = position;
+  }
+  updateCurves();
+});
+
+module.exports = { state, emitter };
+
+},{"./audio":1,"./curves":2,"./data":3,"events":14,"mithril":13}],6:[function(require,module,exports){
+var m = require('mithril');
+
+var getPoints = curve => curve.points.map( point => [ point.x, point.y ]);
+
+var scalePoint = scale => point => [ point[ 0 ] * scale[ 0 ], point[ 1 ] * scale[ 1 ] ];
+
+var svgCurve = points => {
+    var pt = point => point[ 0 ] + ' ' + point[ 1 ];
+    var cmd = ( cmd, ...points ) => cmd + ' ' + points.map( pt ).join(' ');
+    var [ from, cp1, cp2, to ] = points;
+    return cmd( 'M', from ) + ' ' + cmd( 'C', cp1, cp2, to );
+}
+
+var pathdata = ( curves, scale ) => curves.map( curve => {
+    return svgCurve( getPoints( curve ).map( scalePoint( scale ) ) );
+}).join(' ')
+
+module.exports = {
+    
+    view: ({ attrs: { size, cellSize, curves } }) => {
+        
+        var width = size[ 0 ] * cellSize[ 0 ];
+        var height = size[ 1 ] * cellSize[ 1 ];
+        
+        return m( 'svg.curves', { width, height },
+            curves.length > 0 && m( 'path', {
+                d: pathdata( curves, cellSize ),
+                fill: 'none',
+                stroke: 'var(--text-color)',
+                strokeWidth: 1
+            })
+        )
+        
+    }
+    
+}
+},{"mithril":13}],7:[function(require,module,exports){
+var m = require('mithril');
+
+var WIDTH = 26;
+var FRAMES = 5;
+
+var flatten = arr => arr.reduce( ( a, b ) => a.concat( b ), [] );
+
+module.exports = {
+    
+    view: ({ attrs: { curves, size, cellSize, beatDuration, now } }) => {
+        
+        if ( curves.length === 0 ) return;
+        
+        var x = now / beatDuration;
+        
+        var line = {
+            p1: { x, y: -1 },
+            p2: { x, y: size[ 1 ] + 1 }
+        }
+        
+        var intersecting = curves.filter( curve => {
+            
+            var x0 = curve.compute( 0 ).x;
+            var x1 = curve.compute( 1 ).x;
+            
+            return x0 <= x && x1 >= x;
+            
+        })
+        
+        var intersections = flatten( intersecting.map( curve => {
+            
+            return curve.intersects( line ).map( t => {
+                
+                var { x, y } = curve.compute( t );
+                
+                var { x: nx, y: ny } = curve.normal( t );
+                
+                var angle = Math.atan2( ny, nx ) - Math.PI / 2;
+                
+                return { position: [ x, y ], angle };
+                
+            })
+            
+        }))
+        
+        var wrapped = [
+            ...intersections.map(({ position, angle }) => ({
+                position: [ position[ 0 ] - size[ 0 ], position[ 1 ] ],
+                angle
+            })),
+            ...intersections,
+            ...intersections.map(({ position, angle }) => ({
+                position: [ position[ 0 ] + size[ 0 ], position[ 1 ] ],
+                angle
+            })),
+        ]
+        
+        var frame = FRAMES - ( Math.floor( now * 8 ) % FRAMES ) - 1;
+        var backgroundPosition = `${ -WIDTH * frame }px 0`;
+        
+        return wrapped.map( ({ position, angle }, i ) => {
+            
+            var x = position[ 0 ] * cellSize[ 0 ];
+            var y = position[ 1 ] * cellSize[ 1 ];
+            
+            var translate = `translate( ${ x }px, ${ y }px )`;
+            var rotate = `rotate( ${ angle }rad )`;
+            
+            var style = {
+                transform: translate + ' ' + rotate,
+                maskPosition: backgroundPosition,
+                '-webkit-mask-position': backgroundPosition,
+            }
+            
+            return m('.man', { style, key: i } );
+            
+        });
+
+    }
+    
+}
+},{"mithril":13}],8:[function(require,module,exports){
+var m = require("mithril");
+
+var Curves = require("./Curves");
+var Men = require("./Men");
+
+var { symbols } = require("../data");
+
+var isTouch = "ontouchstart" in window;
+
+var sample = arr => arr[Math.floor(Math.random() * arr.length)];
+var rand = (min, max) => min + Math.floor(Math.random() * (max - min));
+var DEG2RAD = Math.PI / 180;
+
+var translate = (cellSize, [x, y]) =>
+  `translate(${x * cellSize[0]}px, ${y * cellSize[1]}px)`;
+
+var popSymbol = (cellSize, position) => {
+  const img = document.createElement("img");
+  img.src = sample(symbols);
+  Object.assign(img.style, {
+    width: cellSize[0] + "px",
+    height: cellSize[1] + "px",
+    position: "absolute",
+    pointerEvents: "none",
+    left: 0,
+    top: 0,
+    zIndex: -1,
+  });
+  document.body.appendChild(img);
+
+  const pos = [position[0] * cellSize[0], position[1] * cellSize[1]];
+  const velocity = [rand(-500, 500), rand(-750, -1250)];
+  let angle = rand(-10, 10) * DEG2RAD;
+  const angvel = rand(-90, 90) * DEG2RAD;
+
+  let then = Date.now() / 1000;
+  const tick = () => {
+    const now = Date.now() / 1000;
+    const dt = now - then;
+    then = now;
+
+    pos[0] += velocity[0] * dt;
+    pos[1] += velocity[1] * dt;
+    velocity[1] += dt * 2000;
+    angle += angvel * dt;
+
+    img.style.transform = `
+      translate(${pos[0]}px, ${pos[1]}px)
+      rotate(${angle}rad)`;
+
+    if (pos[1] > window.innerHeight) {
+      img.remove();
+    } else {
+      requestAnimationFrame(tick);
+    }
+  };
+
+  tick();
+};
+
+module.exports = (state, emitter) => ({
+  oncreate: () => {
+    emitter.on(state.events.NOTE_PLAYED, position => {
+      popSymbol(state.cellSize, position);
+    });
+  },
+  view: () => {
+    var {
+      loaded,
+      playing,
+      size,
+      cellSize,
+      notes,
+      curves,
+      cursor,
+      face,
+      now,
+      beatDuration,
+    } = state;
+
+    if (!loaded) {
+      return m(".center", "boading...");
+    }
+
+    var bind = event => e => {
+      var ww = window.innerWidth;
+      var wh = window.innerHeight;
+      var x = Math.floor((e.clientX / ww) * size[0]);
+      var y = Math.floor((e.clientY / wh) * size[1]);
+      emitter.emit(event, [x, y]);
+    };
+
+    return m(
+      ".main",
+      {
+        onclick: bind(state.events.PLACE_NOTE),
+        onmousemove: !isTouch && bind(state.events.PLACE_CURSOR),
+      },
+      isTouch && notes.every(n => !n.visible) && m(".center", "touch me"),
+      playing &&
+        m(Men, {
+          size,
+          cellSize,
+          curves,
+          beatDuration,
+          now,
+        }),
+      m(Curves, {
+        size,
+        cellSize,
+        curves,
+      }),
+      cursor &&
+        m(".cursor", {
+          style: {
+            transform: translate(cellSize, cursor),
+          },
+        }),
+      notes
+        .filter(n => n.visible)
+        .map(({ position, key, html }) => {
+          var style = {
+            maxWidth: cellSize[0] + "px",
+            transform: translate(cellSize, position),
+          };
+          return m("div", { key, style }, m.trust(html));
+        }),
+      m(".face", {
+        style: {
+          width: cellSize[0] + "px",
+          height: cellSize[1] + "px",
+          transform: translate(cellSize, face),
+        },
+      })
+      // art.map(({ position, src, key }) => m('img.face', {
+      //   key,
+      //   src,
+      //   style: {
+      // 	  width: cellSize[ 0 ] * 0.9 + 'px',
+      // 	  height: cellSize[ 1 ] * 0.9 + 'px',
+      //     transform: translate(position),
+      //     objectPosition: `${key * 100}% 0`
+      //   }
+      // }))
+    );
+  },
+});
+
+},{"../data":3,"./Curves":6,"./Men":7,"mithril":13}],9:[function(require,module,exports){
+module.exports = require('./lib/bezier');
+
+},{"./lib/bezier":10}],10:[function(require,module,exports){
+/**
+  A javascript Bezier curve library by Pomax.
+
+  Based on http://pomax.github.io/bezierinfo
+
+  This code is MIT licensed.
+**/
+(function() {
+  "use strict";
+
+  // math-inlining.
+  var abs = Math.abs,
+      min = Math.min,
+      max = Math.max,
+      cos = Math.cos,
+      sin = Math.sin,
+      acos = Math.acos,
+      sqrt = Math.sqrt,
+      pi = Math.PI,
+      // a zero coordinate, which is surprisingly useful
+      ZERO = {x:0,y:0,z:0};
+
+  // quite needed
+  var utils = require('./utils.js');
+
+  // not quite needed, but eventually this'll be useful...
+  var PolyBezier = require('./poly-bezier.js');
+
+  /**
+   * Bezier curve constructor. The constructor argument can be one of three things:
+   *
+   * 1. array/4 of {x:..., y:..., z:...}, z optional
+   * 2. numerical array/8 ordered x1,y1,x2,y2,x3,y3,x4,y4
+   * 3. numerical array/12 ordered x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4
+   *
+   */
+  var Bezier = function(coords) {
+    var args = (coords && coords.forEach) ? coords : [].slice.call(arguments);
+    var coordlen = false;
+    if(typeof args[0] === "object") {
+      coordlen = args.length;
+      var newargs = [];
+      args.forEach(function(point) {
+        ['x','y','z'].forEach(function(d) {
+          if(typeof point[d] !== "undefined") {
+            newargs.push(point[d]);
+          }
+        });
+      });
+      args = newargs;
+    }
+    var higher = false;
+    var len = args.length;
+    if (coordlen) {
+      if(coordlen>4) {
+        if (arguments.length !== 1) {
+          throw new Error("Only new Bezier(point[]) is accepted for 4th and higher order curves");
+        }
+        higher = true;
+      }
+    } else {
+      if(len!==6 && len!==8 && len!==9 && len!==12) {
+        if (arguments.length !== 1) {
+          throw new Error("Only new Bezier(point[]) is accepted for 4th and higher order curves");
+        }
+      }
+    }
+    var _3d = (!higher && (len === 9 || len === 12)) || (coords && coords[0] && typeof coords[0].z !== "undefined");
+    this._3d = _3d;
+    var points = [];
+    for(var idx=0, step=(_3d ? 3 : 2); idx<len; idx+=step) {
+      var point = {
+        x: args[idx],
+        y: args[idx+1]
+      };
+      if(_3d) { point.z = args[idx+2] };
+      points.push(point);
+    }
+    this.order = points.length - 1;
+    this.points = points;
+    var dims = ['x','y'];
+    if(_3d) dims.push('z');
+    this.dims = dims;
+    this.dimlen = dims.length;
+
+    (function(curve) {
+      var order = curve.order;
+      var points = curve.points;
+      var a = utils.align(points, {p1:points[0], p2:points[order]});
+      for(var i=0; i<a.length; i++) {
+        if(abs(a[i].y) > 0.0001) {
+          curve._linear = false;
+          return;
+        }
+      }
+      curve._linear = true;
+    }(this));
+
+    this._t1 = 0;
+    this._t2 = 1;
+    this.update();
+  };
+
+  Bezier.fromSVG = function(svgString) {
+    var list = svgString.match(/[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?/g).map(parseFloat);
+    var relative = /[cq]/.test(svgString);
+    if(!relative) return new Bezier(list);
+    list = list.map(function(v,i) {
+      return i < 2 ? v : v + list[i % 2];
+    });
+    return new Bezier(list);
+  };
+
+  function getABC(n,S,B,E,t) {
+    if(typeof t === "undefined") { t = 0.5; }
+    var u = utils.projectionratio(t,n),
+        um = 1-u,
+        C = {
+          x: u*S.x + um*E.x,
+          y: u*S.y + um*E.y
+        },
+        s = utils.abcratio(t,n),
+        A = {
+          x: B.x + (B.x-C.x)/s,
+          y: B.y + (B.y-C.y)/s
+        };
+    return { A:A, B:B, C:C };
+  }
+
+  Bezier.quadraticFromPoints = function(p1,p2,p3, t) {
+    if(typeof t === "undefined") { t = 0.5; }
+    // shortcuts, although they're really dumb
+    if(t===0) { return new Bezier(p2,p2,p3); }
+    if(t===1) { return new Bezier(p1,p2,p2); }
+    // real fitting.
+    var abc = getABC(2,p1,p2,p3,t);
+    return new Bezier(p1, abc.A, p3);
+  };
+
+  Bezier.cubicFromPoints = function(S,B,E, t,d1) {
+    if(typeof t === "undefined") { t = 0.5; }
+    var abc = getABC(3,S,B,E,t);
+    if(typeof d1 === "undefined") { d1 = utils.dist(B,abc.C); }
+    var d2 = d1 * (1-t)/t;
+
+    var selen = utils.dist(S,E),
+        lx = (E.x-S.x)/selen,
+        ly = (E.y-S.y)/selen,
+        bx1 = d1 * lx,
+        by1 = d1 * ly,
+        bx2 = d2 * lx,
+        by2 = d2 * ly;
+    // derivation of new hull coordinates
+    var e1  = { x: B.x - bx1, y: B.y - by1 },
+        e2  = { x: B.x + bx2, y: B.y + by2 },
+        A = abc.A,
+        v1  = { x: A.x + (e1.x-A.x)/(1-t), y: A.y + (e1.y-A.y)/(1-t) },
+        v2  = { x: A.x + (e2.x-A.x)/(t), y: A.y + (e2.y-A.y)/(t) },
+        nc1 = { x: S.x + (v1.x-S.x)/(t), y: S.y + (v1.y-S.y)/(t) },
+        nc2 = { x: E.x + (v2.x-E.x)/(1-t), y: E.y + (v2.y-E.y)/(1-t) };
+    // ...done
+    return new Bezier(S,nc1,nc2,E);
+  };
+
+  var getUtils = function() {
+    return utils;
+  };
+
+  Bezier.getUtils = getUtils;
+
+  Bezier.prototype = {
+    getUtils: getUtils,
+    valueOf: function() {
+      return this.toString();
+    },
+    toString: function() {
+      return utils.pointsToString(this.points);
+    },
+    toSVG: function(relative) {
+      if(this._3d) return false;
+      var p = this.points,
+          x = p[0].x,
+          y = p[0].y,
+          s = ["M", x, y, (this.order===2 ? "Q":"C")];
+      for(var i=1, last=p.length; i<last; i++) {
+        s.push(p[i].x);
+        s.push(p[i].y);
+      }
+      return s.join(" ");
+    },
+    update: function() {
+      // one-time compute derivative coordinates
+      this.dpoints = [];
+      for(var p=this.points, d=p.length, c=d-1; d>1; d--, c--) {
+        var list = [];
+        for(var j=0, dpt; j<c; j++) {
+          dpt = {
+            x: c * (p[j+1].x - p[j].x),
+            y: c * (p[j+1].y - p[j].y)
+          };
+          if(this._3d) {
+            dpt.z = c * (p[j+1].z - p[j].z);
+          }
+          list.push(dpt);
+        }
+        this.dpoints.push(list);
+        p = list;
+      };
+      this.computedirection();
+    },
+    computedirection: function() {
+      var points = this.points;
+      var angle = utils.angle(points[0], points[this.order], points[1]);
+      this.clockwise = angle > 0;
+    },
+    length: function() {
+      return utils.length(this.derivative.bind(this));
+    },
+    _lut: [],
+    getLUT: function(steps) {
+      steps = steps || 100;
+      if (this._lut.length === steps) { return this._lut; }
+      this._lut = [];
+      for(var t=0; t<=steps; t++) {
+        this._lut.push(this.compute(t/steps));
+      }
+      return this._lut;
+    },
+    on: function(point, error) {
+      error = error || 5;
+      var lut = this.getLUT(), hits = [], c, t=0;
+      for(var i=0; i<lut.length; i++) {
+        c = lut[i];
+        if (utils.dist(c,point) < error) {
+          hits.push(c)
+          t += i / lut.length;
+        }
+      }
+      if(!hits.length) return false;
+      return t /= hits.length;
+    },
+    project: function(point) {
+      // step 1: coarse check
+      var LUT = this.getLUT(), l = LUT.length-1,
+          closest = utils.closest(LUT, point),
+          mdist = closest.mdist,
+          mpos = closest.mpos;
+      if (mpos===0 || mpos===l) {
+        var t = mpos/l, pt = this.compute(t);
+        pt.t = t;
+        pt.d = mdist;
+        return pt;
+      }
+
+      // step 2: fine check
+      var ft, t, p, d,
+          t1 = (mpos-1)/l,
+          t2 = (mpos+1)/l,
+          step = 0.1/l;
+      mdist += 1;
+      for(t=t1,ft=t; t<t2+step; t+=step) {
+        p = this.compute(t);
+        d = utils.dist(point, p);
+        if (d<mdist) {
+          mdist = d;
+          ft = t;
+        }
+      }
+      p = this.compute(ft);
+      p.t = ft;
+      p.d = mdist;
+      return p;
+    },
+    get: function(t) {
+      return this.compute(t);
+    },
+    point: function(idx) {
+      return this.points[idx];
+    },
+    compute: function(t) {
+      // shortcuts
+      if(t===0) { return this.points[0]; }
+      if(t===1) { return this.points[this.order]; }
+
+      var p = this.points;
+      var mt = 1-t;
+
+      // linear?
+      if(this.order===1) {
+        ret = {
+          x: mt*p[0].x + t*p[1].x,
+          y: mt*p[0].y + t*p[1].y
+        };
+        if (this._3d) { ret.z = mt*p[0].z + t*p[1].z; }
+        return ret;
+      }
+
+      // quadratic/cubic curve?
+      if(this.order<4) {
+        var mt2 = mt*mt,
+            t2 = t*t,
+            a,b,c,d = 0;
+        if(this.order===2) {
+          p = [p[0], p[1], p[2], ZERO];
+          a = mt2;
+          b = mt*t*2;
+          c = t2;
+        }
+        else if(this.order===3) {
+          a = mt2*mt;
+          b = mt2*t*3;
+          c = mt*t2*3;
+          d = t*t2;
+        }
+        var ret = {
+          x: a*p[0].x + b*p[1].x + c*p[2].x + d*p[3].x,
+          y: a*p[0].y + b*p[1].y + c*p[2].y + d*p[3].y
+        };
+        if(this._3d) {
+          ret.z = a*p[0].z + b*p[1].z + c*p[2].z + d*p[3].z;
+        }
+        return ret;
+      }
+
+      // higher order curves: use de Casteljau's computation
+      var dCpts = JSON.parse(JSON.stringify(this.points));
+      while(dCpts.length > 1) {
+        for (var i=0; i<dCpts.length-1; i++) {
+          dCpts[i] = {
+            x: dCpts[i].x + (dCpts[i+1].x - dCpts[i].x) * t,
+            y: dCpts[i].y + (dCpts[i+1].y - dCpts[i].y) * t
+          };
+          if (typeof dCpts[i].z !== "undefined") {
+            dCpts[i] = dCpts[i].z + (dCpts[i+1].z - dCpts[i].z) * t
+          }
+        }
+        dCpts.splice(dCpts.length-1, 1);
+      }
+      return dCpts[0];
+    },
+    raise: function() {
+      var p = this.points, np = [p[0]], i, k=p.length, pi, pim;
+      for (var i=1; i<k; i++) {
+        pi = p[i];
+        pim = p[i-1];
+        np[i] = {
+          x: (k-i)/k * pi.x + i/k * pim.x,
+          y: (k-i)/k * pi.y + i/k * pim.y
+        };
+      }
+      np[k] = p[k-1];
+      return new Bezier(np);
+    },
+    derivative: function(t) {
+      var mt = 1-t,
+          a,b,c=0,
+          p = this.dpoints[0];
+      if(this.order===2) { p = [p[0], p[1], ZERO]; a = mt; b = t; }
+      if(this.order===3) { a = mt*mt; b = mt*t*2; c = t*t; }
+      var ret = {
+        x: a*p[0].x + b*p[1].x + c*p[2].x,
+        y: a*p[0].y + b*p[1].y + c*p[2].y
+      };
+      if(this._3d) {
+        ret.z = a*p[0].z + b*p[1].z + c*p[2].z;
+      }
+      return ret;
+    },
+    inflections: function() {
+      return utils.inflections(this.points);
+    },
+    normal: function(t) {
+      return this._3d ? this.__normal3(t) : this.__normal2(t);
+    },
+    __normal2: function(t) {
+      var d = this.derivative(t);
+      var q = sqrt(d.x*d.x + d.y*d.y)
+      return { x: -d.y/q, y: d.x/q };
+    },
+    __normal3: function(t) {
+      // see http://stackoverflow.com/questions/25453159
+      var r1 = this.derivative(t),
+          r2 = this.derivative(t+0.01),
+          q1 = sqrt(r1.x*r1.x + r1.y*r1.y + r1.z*r1.z),
+          q2 = sqrt(r2.x*r2.x + r2.y*r2.y + r2.z*r2.z);
+      r1.x /= q1; r1.y /= q1; r1.z /= q1;
+      r2.x /= q2; r2.y /= q2; r2.z /= q2;
+      // cross product
+      var c = {
+        x: r2.y*r1.z - r2.z*r1.y,
+        y: r2.z*r1.x - r2.x*r1.z,
+        z: r2.x*r1.y - r2.y*r1.x
+      };
+      var m = sqrt(c.x*c.x + c.y*c.y + c.z*c.z);
+      c.x /= m; c.y /= m; c.z /= m;
+      // rotation matrix
+      var R = [   c.x*c.x,   c.x*c.y-c.z, c.x*c.z+c.y,
+                c.x*c.y+c.z,   c.y*c.y,   c.y*c.z-c.x,
+                c.x*c.z-c.y, c.y*c.z+c.x,   c.z*c.z    ];
+      // normal vector:
+      var n = {
+        x: R[0] * r1.x + R[1] * r1.y + R[2] * r1.z,
+        y: R[3] * r1.x + R[4] * r1.y + R[5] * r1.z,
+        z: R[6] * r1.x + R[7] * r1.y + R[8] * r1.z
+      };
+      return n;
+    },
+    hull: function(t) {
+      var p = this.points,
+          _p = [],
+          pt,
+          q = [],
+          idx = 0,
+          i=0,
+          l=0;
+      q[idx++] = p[0];
+      q[idx++] = p[1];
+      q[idx++] = p[2];
+      if(this.order === 3) { q[idx++] = p[3]; }
+      // we lerp between all points at each iteration, until we have 1 point left.
+      while(p.length>1) {
+        _p = [];
+        for(i=0, l=p.length-1; i<l; i++) {
+          pt = utils.lerp(t,p[i],p[i+1]);
+          q[idx++] = pt;
+          _p.push(pt);
+        }
+        p = _p;
+      }
+      return q;
+    },
+    split: function(t1, t2) {
+      // shortcuts
+      if(t1===0 && !!t2) { return this.split(t2).left; }
+      if(t2===1) { return this.split(t1).right; }
+
+      // no shortcut: use "de Casteljau" iteration.
+      var q = this.hull(t1);
+      var result = {
+        left: this.order === 2 ? new Bezier([q[0],q[3],q[5]]) : new Bezier([q[0],q[4],q[7],q[9]]),
+        right: this.order === 2 ? new Bezier([q[5],q[4],q[2]]) : new Bezier([q[9],q[8],q[6],q[3]]),
+        span: q
+      };
+
+      // make sure we bind _t1/_t2 information!
+      result.left._t1  = utils.map(0,  0,1, this._t1,this._t2);
+      result.left._t2  = utils.map(t1, 0,1, this._t1,this._t2);
+      result.right._t1 = utils.map(t1, 0,1, this._t1,this._t2);
+      result.right._t2 = utils.map(1,  0,1, this._t1,this._t2);
+
+      // if we have no t2, we're done
+      if(!t2) { return result; }
+
+      // if we have a t2, split again:
+      t2 = utils.map(t2,t1,1,0,1);
+      var subsplit = result.right.split(t2);
+      return subsplit.left;
+    },
+    extrema: function() {
+      var dims = this.dims,
+          result={},
+          roots=[],
+          p, mfn;
+      dims.forEach(function(dim) {
+        mfn = function(v) { return v[dim]; };
+        p = this.dpoints[0].map(mfn);
+        result[dim] = utils.droots(p);
+        if(this.order === 3) {
+          p = this.dpoints[1].map(mfn);
+          result[dim] = result[dim].concat(utils.droots(p));
+        }
+        result[dim] = result[dim].filter(function(t) { return (t>=0 && t<=1); });
+        roots = roots.concat(result[dim].sort());
+      }.bind(this));
+      roots = roots.sort().filter(function(v,idx) { return (roots.indexOf(v) === idx); });
+      result.values = roots;
+      return result;
+    },
+    bbox: function() {
+      var extrema = this.extrema(), result = {};
+      this.dims.forEach(function(d) {
+        result[d] = utils.getminmax(this, d, extrema[d]);
+      }.bind(this));
+      return result;
+    },
+    overlaps: function(curve) {
+      var lbbox = this.bbox(),
+          tbbox = curve.bbox();
+      return utils.bboxoverlap(lbbox,tbbox);
+    },
+    offset: function(t, d) {
+      if(typeof d !== "undefined") {
+        var c = this.get(t);
+        var n = this.normal(t);
+        var ret = {
+          c: c,
+          n: n,
+          x: c.x + n.x * d,
+          y: c.y + n.y * d
+        };
+        if(this._3d) {
+          ret.z = c.z + n.z * d;
+        };
+        return ret;
+      }
+      if(this._linear) {
+        var nv = this.normal(0);
+        var coords = this.points.map(function(p) {
+          var ret = {
+            x: p.x + t * nv.x,
+            y: p.y + t * nv.y
+          };
+          if(p.z && n.z) { ret.z = p.z + t * nv.z; }
+          return ret;
+        });
+        return [new Bezier(coords)];
+      }
+      var reduced = this.reduce();
+      return reduced.map(function(s) {
+        return s.scale(t);
+      });
+    },
+    simple: function() {
+      if(this.order===3) {
+        var a1 = utils.angle(this.points[0], this.points[3], this.points[1]);
+        var a2 = utils.angle(this.points[0], this.points[3], this.points[2]);
+        if(a1>0 && a2<0 || a1<0 && a2>0) return false;
+      }
+      var n1 = this.normal(0);
+      var n2 = this.normal(1);
+      var s = n1.x*n2.x + n1.y*n2.y;
+      if(this._3d) { s += n1.z*n2.z; }
+      var angle = abs(acos(s));
+      return angle < pi/3;
+    },
+    reduce: function() {
+      var i, t1=0, t2=0, step=0.01, segment, pass1=[], pass2=[];
+      // first pass: split on extrema
+      var extrema = this.extrema().values;
+      if(extrema.indexOf(0)===-1) { extrema = [0].concat(extrema); }
+      if(extrema.indexOf(1)===-1) { extrema.push(1); }
+
+      for(t1=extrema[0], i=1; i<extrema.length; i++) {
+        t2 = extrema[i];
+        segment = this.split(t1,t2);
+        segment._t1 = t1;
+        segment._t2 = t2;
+        pass1.push(segment);
+        t1 = t2;
+      }
+
+      // second pass: further reduce these segments to simple segments
+      pass1.forEach(function(p1) {
+        t1=0;
+        t2=0;
+        while(t2 <= 1) {
+          for(t2=t1+step; t2<=1+step; t2+=step) {
+            segment = p1.split(t1,t2);
+            if(!segment.simple()) {
+              t2 -= step;
+              if(abs(t1-t2)<step) {
+                // we can never form a reduction
+                return [];
+              }
+              segment = p1.split(t1,t2);
+              segment._t1 = utils.map(t1,0,1,p1._t1,p1._t2);
+              segment._t2 = utils.map(t2,0,1,p1._t1,p1._t2);
+              pass2.push(segment);
+              t1 = t2;
+              break;
+            }
+          }
+        }
+        if(t1<1) {
+          segment = p1.split(t1,1);
+          segment._t1 = utils.map(t1,0,1,p1._t1,p1._t2);
+          segment._t2 = p1._t2;
+          pass2.push(segment);
+        }
+      });
+      return pass2;
+    },
+    scale: function(d) {
+      var order = this.order;
+      var distanceFn = false
+      if(typeof d === "function") { distanceFn = d; }
+      if(distanceFn && order === 2) { return this.raise().scale(distanceFn); }
+
+      // TODO: add special handling for degenerate (=linear) curves.
+      var clockwise = this.clockwise;
+      var r1 = distanceFn ? distanceFn(0) : d;
+      var r2 = distanceFn ? distanceFn(1) : d;
+      var v = [ this.offset(0,10), this.offset(1,10) ];
+      var o = utils.lli4(v[0], v[0].c, v[1], v[1].c);
+      if(!o) { throw new Error("cannot scale this curve. Try reducing it first."); }
+      // move all points by distance 'd' wrt the origin 'o'
+      var points=this.points, np=[];
+
+      // move end points by fixed distance along normal.
+      [0,1].forEach(function(t) {
+        var p = np[t*order] = utils.copy(points[t*order]);
+        p.x += (t?r2:r1) * v[t].n.x;
+        p.y += (t?r2:r1) * v[t].n.y;
+      }.bind(this));
+
+      if (!distanceFn) {
+        // move control points to lie on the intersection of the offset
+        // derivative vector, and the origin-through-control vector
+        [0,1].forEach(function(t) {
+          if(this.order===2 && !!t) return;
+          var p = np[t*order];
+          var d = this.derivative(t);
+          var p2 = { x: p.x + d.x, y: p.y + d.y };
+          np[t+1] = utils.lli4(p, p2, o, points[t+1]);
+        }.bind(this));
+        return new Bezier(np);
+      }
+
+      // move control points by "however much necessary to
+      // ensure the correct tangent to endpoint".
+      [0,1].forEach(function(t) {
+        if(this.order===2 && !!t) return;
+        var p = points[t+1];
+        var ov = {
+          x: p.x - o.x,
+          y: p.y - o.y
+        };
+        var rc = distanceFn ? distanceFn((t+1)/order) : d;
+        if(distanceFn && !clockwise) rc = -rc;
+        var m = sqrt(ov.x*ov.x + ov.y*ov.y);
+        ov.x /= m;
+        ov.y /= m;
+        np[t+1] = {
+          x: p.x + rc*ov.x,
+          y: p.y + rc*ov.y
+        }
+      }.bind(this));
+      return new Bezier(np);
+    },
+    outline: function(d1, d2, d3, d4) {
+      d2 = (typeof d2 === "undefined") ? d1 : d2;
+      var reduced = this.reduce(),
+          len = reduced.length,
+          fcurves = [],
+          bcurves = [],
+          p,
+          alen = 0,
+          tlen = this.length();
+
+      var graduated = (typeof d3 !== "undefined" && typeof d4 !== "undefined");
+
+      function linearDistanceFunction(s,e, tlen,alen,slen) {
+        return function (v) {
+          var f1 = alen/tlen, f2 = (alen+slen)/tlen, d = e-s;
+          return utils.map(v, 0,1, s+f1*d, s+f2*d);
+        };
+      };
+
+      // form curve oulines
+      reduced.forEach(function(segment) {
+        slen = segment.length();
+        if (graduated) {
+          fcurves.push(segment.scale(  linearDistanceFunction( d1, d3, tlen,alen,slen)  ));
+          bcurves.push(segment.scale(  linearDistanceFunction(-d2,-d4, tlen,alen,slen)  ));
+        } else {
+          fcurves.push(segment.scale( d1));
+          bcurves.push(segment.scale(-d2));
+        }
+        alen += slen;
+      });
+
+      // reverse the "return" outline
+      bcurves = bcurves.map(function(s) {
+        p = s.points;
+        if(p[3]) { s.points = [p[3],p[2],p[1],p[0]]; }
+        else { s.points = [p[2],p[1],p[0]]; }
+        return s;
+      }).reverse();
+
+      // form the endcaps as lines
+      var fs = fcurves[0].points[0],
+          fe = fcurves[len-1].points[fcurves[len-1].points.length-1],
+          bs = bcurves[len-1].points[bcurves[len-1].points.length-1],
+          be = bcurves[0].points[0],
+          ls = utils.makeline(bs,fs),
+          le = utils.makeline(fe,be),
+          segments = [ls].concat(fcurves).concat([le]).concat(bcurves),
+          slen = segments.length;
+
+      return new PolyBezier(segments);
+    },
+    outlineshapes: function(d1, d2, curveIntersectionThreshold) {
+      d2 = d2 || d1;
+      var outline = this.outline(d1,d2).curves;
+      var shapes = [];
+      for(var i=1, len=outline.length; i < len/2; i++) {
+        var shape = utils.makeshape(outline[i], outline[len-i], curveIntersectionThreshold);
+        shape.startcap.virtual = (i > 1);
+        shape.endcap.virtual = (i < len/2-1);
+        shapes.push(shape);
+      }
+      return shapes;
+    },
+    intersects: function(curve, curveIntersectionThreshold) {
+      if(!curve) return this.selfintersects(curveIntersectionThreshold);
+      if(curve.p1 && curve.p2) {
+        return this.lineIntersects(curve);
+      }
+      if(curve instanceof Bezier) { curve = curve.reduce(); }
+      return this.curveintersects(this.reduce(), curve, curveIntersectionThreshold);
+    },
+    lineIntersects: function(line) {
+      var mx = min(line.p1.x, line.p2.x),
+          my = min(line.p1.y, line.p2.y),
+          MX = max(line.p1.x, line.p2.x),
+          MY = max(line.p1.y, line.p2.y),
+          self=this;
+      return utils.roots(this.points, line).filter(function(t) {
+        var p = self.get(t);
+        return utils.between(p.x, mx, MX) && utils.between(p.y, my, MY);
+      });
+    },
+    selfintersects: function(curveIntersectionThreshold) {
+      var reduced = this.reduce();
+      // "simple" curves cannot intersect with their direct
+      // neighbour, so for each segment X we check whether
+      // it intersects [0:x-2][x+2:last].
+      var i,len=reduced.length-2,results=[],result,left,right;
+      for(i=0; i<len; i++) {
+        left = reduced.slice(i,i+1);
+        right = reduced.slice(i+2);
+        result = this.curveintersects(left, right, curveIntersectionThreshold);
+        results = results.concat( result );
+      }
+      return results;
+    },
+    curveintersects: function(c1, c2, curveIntersectionThreshold) {
+      var pairs = [];
+      // step 1: pair off any overlapping segments
+      c1.forEach(function(l) {
+        c2.forEach(function(r) {
+          if(l.overlaps(r)) {
+            pairs.push({ left: l, right: r });
+          }
+        });
+      });
+      // step 2: for each pairing, run through the convergence algorithm.
+      var intersections = [];
+      pairs.forEach(function(pair) {
+        var result = utils.pairiteration(pair.left, pair.right, curveIntersectionThreshold);
+        if(result.length > 0) {
+          intersections = intersections.concat(result);
+        }
+      });
+      return intersections;
+    },
+    arcs: function(errorThreshold) {
+      errorThreshold = errorThreshold || 0.5;
+      var circles = [];
+      return this._iterate(errorThreshold, circles);
+    },
+    _error: function(pc, np1, s, e) {
+      var q = (e - s) / 4,
+          c1 = this.get(s + q),
+          c2 = this.get(e - q),
+          ref = utils.dist(pc, np1),
+          d1  = utils.dist(pc, c1),
+          d2  = utils.dist(pc, c2);
+      return abs(d1-ref) + abs(d2-ref);
+    },
+    _iterate: function(errorThreshold, circles) {
+      var t_s = 0, t_e = 1, safety;
+      // we do a binary search to find the "good `t` closest to no-longer-good"
+      do {
+        safety=0;
+
+        // step 1: start with the maximum possible arc
+        t_e = 1;
+
+        // points:
+        var np1 = this.get(t_s), np2, np3, arc, prev_arc;
+
+        // booleans:
+        var curr_good = false, prev_good = false, done;
+
+        // numbers:
+        var t_m = t_e, prev_e = 1, step = 0;
+
+        // step 2: find the best possible arc
+        do {
+          prev_good = curr_good;
+          prev_arc = arc;
+          t_m = (t_s + t_e)/2;
+          step++;
+
+          np2 = this.get(t_m);
+          np3 = this.get(t_e);
+
+          arc = utils.getccenter(np1, np2, np3);
+
+          //also save the t values
+          arc.interval = {
+            start: t_s,
+            end: t_e
+          };
+
+          var error = this._error(arc, np1, t_s, t_e);
+          curr_good = (error <= errorThreshold);
+
+          done = prev_good && !curr_good;
+          if(!done) prev_e = t_e;
+
+          // this arc is fine: we can move 'e' up to see if we can find a wider arc
+          if(curr_good) {
+
+            // if e is already at max, then we're done for this arc.
+            if (t_e >= 1) {
+              // make sure we cap at t=1
+              arc.interval.end = prev_e = 1;
+              prev_arc = arc;
+              // if we capped the arc segment to t=1 we also need to make sure that
+              // the arc's end angle is correct with respect to the bezier end point.
+              if (t_e > 1) {
+                var d = {
+                  x: arc.x + arc.r * cos(arc.e),
+                  y: arc.y + arc.r * sin(arc.e)
+                };
+                arc.e += utils.angle({x:arc.x, y:arc.y}, d, this.get(1));
+              }
+              break;
+            }
+            // if not, move it up by half the iteration distance
+            t_e = t_e + (t_e-t_s)/2;
+          }
+
+          // this is a bad arc: we need to move 'e' down to find a good arc
+          else {
+            t_e = t_m;
+          }
+        }
+        while(!done && safety++<100);
+
+        if(safety>=100) {
+          break;
+        }
+
+        // console.log("L835: [F] arc found", t_s, prev_e, prev_arc.x, prev_arc.y, prev_arc.s, prev_arc.e);
+
+        prev_arc = (prev_arc ? prev_arc : arc);
+        circles.push(prev_arc);
+        t_s = prev_e;
+      }
+      while(t_e < 1);
+      return circles;
+    }
+  };
+
+  module.exports = Bezier;
+
+}());
+
+},{"./poly-bezier.js":11,"./utils.js":12}],11:[function(require,module,exports){
+(function() {
+  "use strict";
+
+  var utils = require('./utils.js');
+
+  /**
+   * Poly Bezier
+   * @param {[type]} curves [description]
+   */
+  var PolyBezier = function(curves) {
+    this.curves = [];
+    this._3d = false;
+    if(!!curves) {
+      this.curves = curves;
+      this._3d = this.curves[0]._3d;
+    }
+  }
+
+  PolyBezier.prototype = {
+    valueOf: function() {
+      return this.toString();
+    },
+    toString: function() {
+      return "[" + this.curves.map(function(curve) {
+        return utils.pointsToString(curve.points);
+      }).join(", ") + "]";
+    },
+    addCurve: function(curve) {
+      this.curves.push(curve);
+      this._3d = this._3d || curve._3d;
+    },
+    length: function() {
+      return this.curves.map(function(v) { return v.length(); }).reduce(function(a,b) { return a+b; });
+    },
+    curve: function(idx) {
+      return this.curves[idx];
+    },
+    bbox: function() {
+      var c = this.curves;
+      var bbox = c[0].bbox();
+      for(var i=1; i<c.length; i++) {
+        utils.expandbox(bbox, c[i].bbox());
+      }
+      return bbox;
+    },
+    offset: function(d) {
+      var offset = [];
+      this.curves.forEach(function(v) {
+        offset = offset.concat(v.offset(d));
+      });
+      return new PolyBezier(offset);
+    }
+  };
+
+  module.exports = PolyBezier;
+}());
+
+},{"./utils.js":12}],12:[function(require,module,exports){
+(function() {
+  "use strict";
+
+  // math-inlining.
+  var abs = Math.abs,
+      cos = Math.cos,
+      sin = Math.sin,
+      acos = Math.acos,
+      atan2 = Math.atan2,
+      sqrt = Math.sqrt,
+      pow = Math.pow,
+      // cube root function yielding real roots
+      crt = function(v) { return (v<0) ? -pow(-v,1/3) : pow(v,1/3); },
+      // trig constants
+      pi = Math.PI,
+      tau = 2*pi,
+      quart = pi/2,
+      // float precision significant decimal
+      epsilon = 0.000001,
+      // extremas used in bbox calculation and similar algorithms
+      nMax = Number.MAX_SAFE_INTEGER,
+      nMin = Number.MIN_SAFE_INTEGER;
+
+  // Bezier utility functions
+  var utils = {
+    // Legendre-Gauss abscissae with n=24 (x_i values, defined at i=n as the roots of the nth order Legendre polynomial Pn(x))
+    Tvalues: [
+      -0.0640568928626056260850430826247450385909,
+       0.0640568928626056260850430826247450385909,
+      -0.1911188674736163091586398207570696318404,
+       0.1911188674736163091586398207570696318404,
+      -0.3150426796961633743867932913198102407864,
+       0.3150426796961633743867932913198102407864,
+      -0.4337935076260451384870842319133497124524,
+       0.4337935076260451384870842319133497124524,
+      -0.5454214713888395356583756172183723700107,
+       0.5454214713888395356583756172183723700107,
+      -0.6480936519369755692524957869107476266696,
+       0.6480936519369755692524957869107476266696,
+      -0.7401241915785543642438281030999784255232,
+       0.7401241915785543642438281030999784255232,
+      -0.8200019859739029219539498726697452080761,
+       0.8200019859739029219539498726697452080761,
+      -0.8864155270044010342131543419821967550873,
+       0.8864155270044010342131543419821967550873,
+      -0.9382745520027327585236490017087214496548,
+       0.9382745520027327585236490017087214496548,
+      -0.9747285559713094981983919930081690617411,
+       0.9747285559713094981983919930081690617411,
+      -0.9951872199970213601799974097007368118745,
+       0.9951872199970213601799974097007368118745
+    ],
+
+    // Legendre-Gauss weights with n=24 (w_i values, defined by a function linked to in the Bezier primer article)
+    Cvalues: [
+      0.1279381953467521569740561652246953718517,
+      0.1279381953467521569740561652246953718517,
+      0.1258374563468282961213753825111836887264,
+      0.1258374563468282961213753825111836887264,
+      0.1216704729278033912044631534762624256070,
+      0.1216704729278033912044631534762624256070,
+      0.1155056680537256013533444839067835598622,
+      0.1155056680537256013533444839067835598622,
+      0.1074442701159656347825773424466062227946,
+      0.1074442701159656347825773424466062227946,
+      0.0976186521041138882698806644642471544279,
+      0.0976186521041138882698806644642471544279,
+      0.0861901615319532759171852029837426671850,
+      0.0861901615319532759171852029837426671850,
+      0.0733464814110803057340336152531165181193,
+      0.0733464814110803057340336152531165181193,
+      0.0592985849154367807463677585001085845412,
+      0.0592985849154367807463677585001085845412,
+      0.0442774388174198061686027482113382288593,
+      0.0442774388174198061686027482113382288593,
+      0.0285313886289336631813078159518782864491,
+      0.0285313886289336631813078159518782864491,
+      0.0123412297999871995468056670700372915759,
+      0.0123412297999871995468056670700372915759
+    ],
+
+    arcfn: function(t, derivativeFn) {
+      var d = derivativeFn(t);
+      var l = d.x*d.x + d.y*d.y;
+      if(typeof d.z !== "undefined") {
+        l += d.z*d.z;
+      }
+      return sqrt(l);
+    },
+
+    between: function(v, m, M) {
+      return (m <= v && v <= M) || utils.approximately(v, m) || utils.approximately(v, M);
+    },
+
+    approximately: function(a,b,precision) {
+      return abs(a-b) <= (precision || epsilon);
+    },
+
+    length: function(derivativeFn) {
+      var z=0.5,sum=0,len=utils.Tvalues.length,i,t;
+      for(i=0; i<len; i++) {
+        t = z * utils.Tvalues[i] + z;
+        sum += utils.Cvalues[i] * utils.arcfn(t,derivativeFn);
+      }
+      return z * sum;
+    },
+
+    map: function(v, ds,de, ts,te) {
+      var d1 = de-ds, d2 = te-ts, v2 =  v-ds, r = v2/d1;
+      return ts + d2*r;
+    },
+
+    lerp: function(r, v1, v2) {
+      var ret = {
+        x: v1.x + r*(v2.x-v1.x),
+        y: v1.y + r*(v2.y-v1.y)
+      };
+      if(!!v1.z && !!v2.z) {
+        ret.z =  v1.z + r*(v2.z-v1.z);
+      }
+      return ret;
+    },
+
+    pointToString: function(p) {
+      var s = p.x+"/"+p.y;
+      if(typeof p.z !== "undefined") {
+        s += "/"+p.z;
+      }
+      return s;
+    },
+
+    pointsToString: function(points) {
+      return "[" + points.map(utils.pointToString).join(", ") + "]";
+    },
+
+    copy: function(obj) {
+      return JSON.parse(JSON.stringify(obj));
+    },
+
+    angle: function(o,v1,v2) {
+      var dx1 = v1.x - o.x,
+          dy1 = v1.y - o.y,
+          dx2 = v2.x - o.x,
+          dy2 = v2.y - o.y,
+          cross = dx1*dy2 - dy1*dx2,
+          dot = dx1*dx2 + dy1*dy2;
+      return atan2(cross, dot);
+    },
+
+    // round as string, to avoid rounding errors
+    round: function(v, d) {
+      var s = '' + v;
+      var pos = s.indexOf(".");
+      return parseFloat(s.substring(0,pos+1+d));
+    },
+
+    dist: function(p1, p2) {
+      var dx = p1.x - p2.x,
+          dy = p1.y - p2.y;
+      return sqrt(dx*dx+dy*dy);
+    },
+
+    closest: function(LUT, point) {
+      var mdist = pow(2,63), mpos, d;
+      LUT.forEach(function(p, idx) {
+        d = utils.dist(point, p);
+        if (d<mdist) {
+          mdist = d;
+          mpos = idx;
+        }
+      });
+      return { mdist:mdist, mpos:mpos };
+    },
+
+    abcratio: function(t, n) {
+      // see ratio(t) note on http://pomax.github.io/bezierinfo/#abc
+      if (n!==2 && n!==3) {
+        return false;
+      }
+      if (typeof t === "undefined") {
+        t = 0.5;
+      } else if (t===0 || t===1) {
+        return t;
+      }
+      var bottom = pow(t,n) + pow(1-t,n), top = bottom - 1;
+      return abs(top/bottom);
+    },
+
+    projectionratio: function(t, n) {
+      // see u(t) note on http://pomax.github.io/bezierinfo/#abc
+      if (n!==2 && n!==3) {
+        return false;
+      }
+      if (typeof t === "undefined") {
+        t = 0.5;
+      } else if (t===0 || t===1) {
+        return t;
+      }
+      var top = pow(1-t, n), bottom = pow(t,n) + top;
+      return top/bottom;
+    },
+
+    lli8: function(x1,y1,x2,y2,x3,y3,x4,y4) {
+      var nx=(x1*y2-y1*x2)*(x3-x4)-(x1-x2)*(x3*y4-y3*x4),
+          ny=(x1*y2-y1*x2)*(y3-y4)-(y1-y2)*(x3*y4-y3*x4),
+          d=(x1-x2)*(y3-y4)-(y1-y2)*(x3-x4);
+      if(d==0) { return false; }
+      return { x: nx/d, y: ny/d };
+    },
+
+    lli4: function(p1,p2,p3,p4) {
+      var x1 = p1.x, y1 = p1.y,
+          x2 = p2.x, y2 = p2.y,
+          x3 = p3.x, y3 = p3.y,
+          x4 = p4.x, y4 = p4.y;
+      return utils.lli8(x1,y1,x2,y2,x3,y3,x4,y4);
+    },
+
+    lli: function(v1, v2) {
+      return utils.lli4(v1,v1.c,v2,v2.c);
+    },
+
+    makeline: function(p1,p2) {
+      var Bezier = require('./bezier');
+      var x1 = p1.x, y1 = p1.y, x2 = p2.x, y2 = p2.y, dx = (x2-x1)/3, dy = (y2-y1)/3;
+      return new Bezier(x1, y1, x1+dx, y1+dy, x1+2*dx, y1+2*dy, x2, y2);
+    },
+
+    findbbox: function(sections) {
+      var mx=nMax,my=nMax,MX=nMin,MY=nMin;
+      sections.forEach(function(s) {
+        var bbox = s.bbox();
+        if(mx > bbox.x.min) mx = bbox.x.min;
+        if(my > bbox.y.min) my = bbox.y.min;
+        if(MX < bbox.x.max) MX = bbox.x.max;
+        if(MY < bbox.y.max) MY = bbox.y.max;
+      });
+      return {
+        x: { min: mx, mid:(mx+MX)/2, max: MX, size:MX-mx },
+        y: { min: my, mid:(my+MY)/2, max: MY, size:MY-my }
+      }
+    },
+
+    shapeintersections: function(s1, bbox1, s2, bbox2, curveIntersectionThreshold) {
+      if(!utils.bboxoverlap(bbox1, bbox2)) return [];
+      var intersections = [];
+      var a1 = [s1.startcap, s1.forward, s1.back, s1.endcap];
+      var a2 = [s2.startcap, s2.forward, s2.back, s2.endcap];
+      a1.forEach(function(l1) {
+        if(l1.virtual) return;
+        a2.forEach(function(l2) {
+          if(l2.virtual) return;
+          var iss = l1.intersects(l2, curveIntersectionThreshold);
+          if(iss.length>0) {
+            iss.c1 = l1;
+            iss.c2 = l2;
+            iss.s1 = s1;
+            iss.s2 = s2;
+            intersections.push(iss);
+          }
+        });
+      });
+      return intersections;
+    },
+
+    makeshape: function(forward, back, curveIntersectionThreshold) {
+      var bpl = back.points.length;
+      var fpl = forward.points.length;
+      var start  = utils.makeline(back.points[bpl-1], forward.points[0]);
+      var end    = utils.makeline(forward.points[fpl-1], back.points[0]);
+      var shape  = {
+        startcap: start,
+        forward: forward,
+        back: back,
+        endcap: end,
+        bbox: utils.findbbox([start, forward, back, end])
+      };
+      var self = utils;
+      shape.intersections = function(s2) {
+        return self.shapeintersections(shape,shape.bbox,s2,s2.bbox, curveIntersectionThreshold);
+      };
+      return shape;
+    },
+
+    getminmax: function(curve, d, list) {
+      if(!list) return { min:0, max:0 };
+      var min=nMax, max=nMin,t,c;
+      if(list.indexOf(0)===-1) { list = [0].concat(list); }
+      if(list.indexOf(1)===-1) { list.push(1); }
+      for(var i=0,len=list.length; i<len; i++) {
+        t = list[i];
+        c = curve.get(t);
+        if(c[d] < min) { min = c[d]; }
+        if(c[d] > max) { max = c[d]; }
+      }
+      return { min:min, mid:(min+max)/2, max:max, size:max-min };
+    },
+
+    align: function(points, line) {
+      var tx = line.p1.x,
+          ty = line.p1.y,
+          a = -atan2(line.p2.y-ty, line.p2.x-tx),
+          d = function(v) {
+            return {
+              x: (v.x-tx)*cos(a) - (v.y-ty)*sin(a),
+              y: (v.x-tx)*sin(a) + (v.y-ty)*cos(a)
+            };
+          };
+      return points.map(d);
+    },
+
+    roots: function(points, line) {
+      line = line || {p1:{x:0,y:0},p2:{x:1,y:0}};
+      var order = points.length - 1;
+      var p = utils.align(points, line);
+      var reduce = function(t) { return 0<=t && t <=1; };
+
+      if (order === 2) {
+        var a = p[0].y,
+            b = p[1].y,
+            c = p[2].y,
+            d = a - 2*b + c;
+        if(d!==0) {
+          var m1 = -sqrt(b*b-a*c),
+              m2 = -a+b,
+              v1 = -( m1+m2)/d,
+              v2 = -(-m1+m2)/d;
+          return [v1, v2].filter(reduce);
+        }
+        else if(b!==c && d===0) {
+          return [ (2*b-c)/2*(b-c) ].filter(reduce);
+        }
+        return [];
+      }
+
+      // see http://www.trans4mind.com/personal_development/mathematics/polynomials/cubicAlgebra.htm
+      var pa = p[0].y,
+          pb = p[1].y,
+          pc = p[2].y,
+          pd = p[3].y,
+          d = (-pa + 3*pb - 3*pc + pd),
+          a = (3*pa - 6*pb + 3*pc) / d,
+          b = (-3*pa + 3*pb) / d,
+          c = pa / d,
+          p = (3*b - a*a)/3,
+          p3 = p/3,
+          q = (2*a*a*a - 9*a*b + 27*c)/27,
+          q2 = q/2,
+          discriminant = q2*q2 + p3*p3*p3,
+          u1,v1,x1,x2,x3;
+       if (discriminant < 0) {
+        var mp3 = -p/3,
+            mp33 = mp3*mp3*mp3,
+            r = sqrt( mp33 ),
+            t = -q/(2*r),
+            cosphi = t<-1 ? -1 : t>1 ? 1 : t,
+            phi = acos(cosphi),
+            crtr = crt(r),
+            t1 = 2*crtr;
+        x1 = t1 * cos(phi/3) - a/3;
+        x2 = t1 * cos((phi+tau)/3) - a/3;
+        x3 = t1 * cos((phi+2*tau)/3) - a/3;
+        return [x1, x2, x3].filter(reduce);
+      } else if(discriminant === 0) {
+        u1 = q2 < 0 ? crt(-q2) : -crt(q2);
+        x1 = 2*u1-a/3;
+        x2 = -u1 - a/3;
+        return [x1,x2].filter(reduce);
+      } else {
+        var sd = sqrt(discriminant);
+        u1 = crt(-q2+sd);
+        v1 = crt(q2+sd);
+        return [u1-v1-a/3].filter(reduce);;
+      }
+    },
+
+    droots: function(p) {
+      // quadratic roots are easy
+      if(p.length === 3) {
+        var a = p[0],
+            b = p[1],
+            c = p[2],
+            d = a - 2*b + c;
+        if(d!==0) {
+          var m1 = -sqrt(b*b-a*c),
+              m2 = -a+b,
+              v1 = -( m1+m2)/d,
+              v2 = -(-m1+m2)/d;
+          return [v1, v2];
+        }
+        else if(b!==c && d===0) {
+          return [(2*b-c)/(2*(b-c))];
+        }
+        return [];
+      }
+
+      // linear roots are even easier
+      if(p.length === 2) {
+        var a = p[0], b = p[1];
+        if(a!==b) {
+          return [a/(a-b)];
+        }
+        return [];
+      }
+    },
+
+    inflections: function(points) {
+      if (points.length<4) return [];
+
+      // FIXME: TODO: add in inflection abstraction for quartic+ curves?
+
+      var p = utils.align(points, { p1: points[0], p2: points.slice(-1)[0] }),
+          a = p[2].x * p[1].y,
+          b = p[3].x * p[1].y,
+          c = p[1].x * p[2].y,
+          d = p[3].x * p[2].y,
+          v1 = 18 * (-3*a + 2*b + 3*c - d),
+          v2 = 18 * (3*a - b - 3*c),
+          v3 = 18 * (c - a);
+
+      if (utils.approximately(v1,0)){
+        if(!utils.approximately(v2,0)){
+          var t = -v3/v2;
+          if (0 <= t && t <= 1)
+             return [t];
+        }
+        return [];
+      }
+
+      var trm = v2*v2 - 4*v1*v3,
+          sq = Math.sqrt(trm),
+          d = 2 * v1;
+
+      if (utils.approximately(d,0)) return [];
+
+      return [(sq-v2)/d, -(v2+sq)/d].filter(function(r) {
+        return (0 <= r && r <= 1);
+      });
+    },
+
+    bboxoverlap: function(b1,b2) {
+      var dims=['x','y'],len=dims.length,i,dim,l,t,d
+      for(i=0; i<len; i++) {
+        dim = dims[i];
+        l = b1[dim].mid;
+        t = b2[dim].mid;
+        d = (b1[dim].size + b2[dim].size)/2;
+        if(abs(l-t) >= d) return false;
+      }
+      return true;
+    },
+
+    expandbox: function(bbox, _bbox) {
+      if(_bbox.x.min < bbox.x.min) { bbox.x.min = _bbox.x.min; }
+      if(_bbox.y.min < bbox.y.min) { bbox.y.min = _bbox.y.min; }
+      if(_bbox.z && _bbox.z.min < bbox.z.min) { bbox.z.min = _bbox.z.min; }
+      if(_bbox.x.max > bbox.x.max) { bbox.x.max = _bbox.x.max; }
+      if(_bbox.y.max > bbox.y.max) { bbox.y.max = _bbox.y.max; }
+      if(_bbox.z && _bbox.z.max > bbox.z.max) { bbox.z.max = _bbox.z.max; }
+      bbox.x.mid = (bbox.x.min + bbox.x.max)/2;
+      bbox.y.mid = (bbox.y.min + bbox.y.max)/2;
+      if(bbox.z) { bbox.z.mid = (bbox.z.min + bbox.z.max)/2; }
+      bbox.x.size = bbox.x.max - bbox.x.min;
+      bbox.y.size = bbox.y.max - bbox.y.min;
+      if(bbox.z) { bbox.z.size = bbox.z.max - bbox.z.min; }
+    },
+
+    pairiteration: function(c1, c2, curveIntersectionThreshold) {
+      var c1b = c1.bbox(),
+          c2b = c2.bbox(),
+          r = 100000,
+          threshold = curveIntersectionThreshold || 0.5;
+      if(c1b.x.size + c1b.y.size < threshold && c2b.x.size + c2b.y.size < threshold) {
+        return [ ((r * (c1._t1+c1._t2)/2)|0)/r + "/" + ((r * (c2._t1+c2._t2)/2)|0)/r ];
+      }
+      var cc1 = c1.split(0.5),
+          cc2 = c2.split(0.5),
+          pairs = [
+            {left: cc1.left, right: cc2.left },
+            {left: cc1.left, right: cc2.right },
+            {left: cc1.right, right: cc2.right },
+            {left: cc1.right, right: cc2.left }];
+      pairs = pairs.filter(function(pair) {
+        return utils.bboxoverlap(pair.left.bbox(),pair.right.bbox());
+      });
+      var results = [];
+      if(pairs.length === 0) return results;
+      pairs.forEach(function(pair) {
+        results = results.concat(
+          utils.pairiteration(pair.left, pair.right, threshold)
+        );
+      })
+      results = results.filter(function(v,i) {
+        return results.indexOf(v) === i;
+      });
+      return results;
+    },
+
+    getccenter: function(p1,p2,p3) {
+      var dx1 = (p2.x - p1.x),
+          dy1 = (p2.y - p1.y),
+          dx2 = (p3.x - p2.x),
+          dy2 = (p3.y - p2.y);
+      var dx1p = dx1 * cos(quart) - dy1 * sin(quart),
+          dy1p = dx1 * sin(quart) + dy1 * cos(quart),
+          dx2p = dx2 * cos(quart) - dy2 * sin(quart),
+          dy2p = dx2 * sin(quart) + dy2 * cos(quart);
+      // chord midpoints
+      var mx1 = (p1.x + p2.x)/2,
+          my1 = (p1.y + p2.y)/2,
+          mx2 = (p2.x + p3.x)/2,
+          my2 = (p2.y + p3.y)/2;
+      // midpoint offsets
+      var mx1n = mx1 + dx1p,
+          my1n = my1 + dy1p,
+          mx2n = mx2 + dx2p,
+          my2n = my2 + dy2p;
+      // intersection of these lines:
+      var arc = utils.lli8(mx1,my1,mx1n,my1n, mx2,my2,mx2n,my2n),
+          r = utils.dist(arc,p1),
+          // arc start/end values, over mid point:
+          s = atan2(p1.y - arc.y, p1.x - arc.x),
+          m = atan2(p2.y - arc.y, p2.x - arc.x),
+          e = atan2(p3.y - arc.y, p3.x - arc.x),
+          _;
+      // determine arc direction (cw/ccw correction)
+      if (s<e) {
+        // if s<m<e, arc(s, e)
+        // if m<s<e, arc(e, s + tau)
+        // if s<e<m, arc(e, s + tau)
+        if (s>m || m>e) { s += tau; }
+        if (s>e) { _=e; e=s; s=_; }
+      } else {
+        // if e<m<s, arc(e, s)
+        // if m<e<s, arc(s, e + tau)
+        // if e<s<m, arc(s, e + tau)
+        if (e<m && m<s) { _=e; e=s; s=_; } else { e += tau; }
+      }
+      // assign and done.
+      arc.s = s;
+      arc.e = e;
+      arc.r = r;
+      return arc;
+    }
+  };
+
+  module.exports = utils;
+}());
+
+},{"./bezier":10}],13:[function(require,module,exports){
+(function (global){
+;(function() {
+"use strict"
+function Vnode(tag, key, attrs0, children, text, dom) {
+	return {tag: tag, key: key, attrs: attrs0, children: children, text: text, dom: dom, domSize: undefined, state: undefined, _state: undefined, events: undefined, instance: undefined, skip: false}
+}
+Vnode.normalize = function(node) {
+	if (Array.isArray(node)) return Vnode("[", undefined, undefined, Vnode.normalizeChildren(node), undefined, undefined)
+	if (node != null && typeof node !== "object") return Vnode("#", undefined, undefined, node === false ? "" : node, undefined, undefined)
+	return node
+}
+Vnode.normalizeChildren = function normalizeChildren(children) {
+	for (var i = 0; i < children.length; i++) {
+		children[i] = Vnode.normalize(children[i])
+	}
+	return children
+}
+var selectorParser = /(?:(^|#|\.)([^#\.\[\]]+))|(\[(.+?)(?:\s*=\s*("|'|)((?:\\["'\]]|.)*?)\5)?\])/g
+var selectorCache = {}
+var hasOwn = {}.hasOwnProperty
+function isEmpty(object) {
+	for (var key in object) if (hasOwn.call(object, key)) return false
+	return true
+}
+function compileSelector(selector) {
+	var match, tag = "div", classes = [], attrs = {}
+	while (match = selectorParser.exec(selector)) {
+		var type = match[1], value = match[2]
+		if (type === "" && value !== "") tag = value
+		else if (type === "#") attrs.id = value
+		else if (type === ".") classes.push(value)
+		else if (match[3][0] === "[") {
+			var attrValue = match[6]
+			if (attrValue) attrValue = attrValue.replace(/\\(["'])/g, "$1").replace(/\\\\/g, "\\")
+			if (match[4] === "class") classes.push(attrValue)
+			else attrs[match[4]] = attrValue === "" ? attrValue : attrValue || true
+		}
+	}
+	if (classes.length > 0) attrs.className = classes.join(" ")
+	return selectorCache[selector] = {tag: tag, attrs: attrs}
+}
+function execSelector(state, attrs, children) {
+	var hasAttrs = false, childList, text
+	var className = attrs.className || attrs.class
+	if (!isEmpty(state.attrs) && !isEmpty(attrs)) {
+		var newAttrs = {}
+		for(var key in attrs) {
+			if (hasOwn.call(attrs, key)) {
+				newAttrs[key] = attrs[key]
+			}
+		}
+		attrs = newAttrs
+	}
+	for (var key in state.attrs) {
+		if (hasOwn.call(state.attrs, key)) {
+			attrs[key] = state.attrs[key]
+		}
+	}
+	if (className !== undefined) {
+		if (attrs.class !== undefined) {
+			attrs.class = undefined
+			attrs.className = className
+		}
+		if (state.attrs.className != null) {
+			attrs.className = state.attrs.className + " " + className
+		}
+	}
+	for (var key in attrs) {
+		if (hasOwn.call(attrs, key) && key !== "key") {
+			hasAttrs = true
+			break
+		}
+	}
+	if (Array.isArray(children) && children.length === 1 && children[0] != null && children[0].tag === "#") {
+		text = children[0].children
+	} else {
+		childList = children
+	}
+	return Vnode(state.tag, attrs.key, hasAttrs ? attrs : undefined, childList, text)
+}
+function hyperscript(selector) {
+	// Because sloppy mode sucks
+	var attrs = arguments[1], start = 2, children
+	if (selector == null || typeof selector !== "string" && typeof selector !== "function" && typeof selector.view !== "function") {
+		throw Error("The selector must be either a string or a component.");
+	}
+	if (typeof selector === "string") {
+		var cached = selectorCache[selector] || compileSelector(selector)
+	}
+	if (attrs == null) {
+		attrs = {}
+	} else if (typeof attrs !== "object" || attrs.tag != null || Array.isArray(attrs)) {
+		attrs = {}
+		start = 1
+	}
+	if (arguments.length === start + 1) {
+		children = arguments[start]
+		if (!Array.isArray(children)) children = [children]
+	} else {
+		children = []
+		while (start < arguments.length) children.push(arguments[start++])
+	}
+	var normalized = Vnode.normalizeChildren(children)
+	if (typeof selector === "string") {
+		return execSelector(cached, attrs, normalized)
+	} else {
+		return Vnode(selector, attrs.key, attrs, normalized)
+	}
+}
+hyperscript.trust = function(html) {
+	if (html == null) html = ""
+	return Vnode("<", undefined, undefined, html, undefined, undefined)
+}
+hyperscript.fragment = function(attrs1, children) {
+	return Vnode("[", attrs1.key, attrs1, Vnode.normalizeChildren(children), undefined, undefined)
+}
+var m = hyperscript
+/** @constructor */
+var PromisePolyfill = function(executor) {
+	if (!(this instanceof PromisePolyfill)) throw new Error("Promise must be called with `new`")
+	if (typeof executor !== "function") throw new TypeError("executor must be a function")
+	var self = this, resolvers = [], rejectors = [], resolveCurrent = handler(resolvers, true), rejectCurrent = handler(rejectors, false)
+	var instance = self._instance = {resolvers: resolvers, rejectors: rejectors}
+	var callAsync = typeof setImmediate === "function" ? setImmediate : setTimeout
+	function handler(list, shouldAbsorb) {
+		return function execute(value) {
+			var then
+			try {
+				if (shouldAbsorb && value != null && (typeof value === "object" || typeof value === "function") && typeof (then = value.then) === "function") {
+					if (value === self) throw new TypeError("Promise can't be resolved w/ itself")
+					executeOnce(then.bind(value))
+				}
+				else {
+					callAsync(function() {
+						if (!shouldAbsorb && list.length === 0) console.error("Possible unhandled promise rejection:", value)
+						for (var i = 0; i < list.length; i++) list[i](value)
+						resolvers.length = 0, rejectors.length = 0
+						instance.state = shouldAbsorb
+						instance.retry = function() {execute(value)}
+					})
+				}
+			}
+			catch (e) {
+				rejectCurrent(e)
+			}
+		}
+	}
+	function executeOnce(then) {
+		var runs = 0
+		function run(fn) {
+			return function(value) {
+				if (runs++ > 0) return
+				fn(value)
+			}
+		}
+		var onerror = run(rejectCurrent)
+		try {then(run(resolveCurrent), onerror)} catch (e) {onerror(e)}
+	}
+	executeOnce(executor)
+}
+PromisePolyfill.prototype.then = function(onFulfilled, onRejection) {
+	var self = this, instance = self._instance
+	function handle(callback, list, next, state) {
+		list.push(function(value) {
+			if (typeof callback !== "function") next(value)
+			else try {resolveNext(callback(value))} catch (e) {if (rejectNext) rejectNext(e)}
+		})
+		if (typeof instance.retry === "function" && state === instance.state) instance.retry()
+	}
+	var resolveNext, rejectNext
+	var promise = new PromisePolyfill(function(resolve, reject) {resolveNext = resolve, rejectNext = reject})
+	handle(onFulfilled, instance.resolvers, resolveNext, true), handle(onRejection, instance.rejectors, rejectNext, false)
+	return promise
+}
+PromisePolyfill.prototype.catch = function(onRejection) {
+	return this.then(null, onRejection)
+}
+PromisePolyfill.resolve = function(value) {
+	if (value instanceof PromisePolyfill) return value
+	return new PromisePolyfill(function(resolve) {resolve(value)})
+}
+PromisePolyfill.reject = function(value) {
+	return new PromisePolyfill(function(resolve, reject) {reject(value)})
+}
+PromisePolyfill.all = function(list) {
+	return new PromisePolyfill(function(resolve, reject) {
+		var total = list.length, count = 0, values = []
+		if (list.length === 0) resolve([])
+		else for (var i = 0; i < list.length; i++) {
+			(function(i) {
+				function consume(value) {
+					count++
+					values[i] = value
+					if (count === total) resolve(values)
+				}
+				if (list[i] != null && (typeof list[i] === "object" || typeof list[i] === "function") && typeof list[i].then === "function") {
+					list[i].then(consume, reject)
+				}
+				else consume(list[i])
+			})(i)
+		}
+	})
+}
+PromisePolyfill.race = function(list) {
+	return new PromisePolyfill(function(resolve, reject) {
+		for (var i = 0; i < list.length; i++) {
+			list[i].then(resolve, reject)
+		}
+	})
+}
+if (typeof window !== "undefined") {
+	if (typeof window.Promise === "undefined") window.Promise = PromisePolyfill
+	var PromisePolyfill = window.Promise
+} else if (typeof global !== "undefined") {
+	if (typeof global.Promise === "undefined") global.Promise = PromisePolyfill
+	var PromisePolyfill = global.Promise
+} else {
+}
+var buildQueryString = function(object) {
+	if (Object.prototype.toString.call(object) !== "[object Object]") return ""
+	var args = []
+	for (var key0 in object) {
+		destructure(key0, object[key0])
+	}
+	return args.join("&")
+	function destructure(key0, value) {
+		if (Array.isArray(value)) {
+			for (var i = 0; i < value.length; i++) {
+				destructure(key0 + "[" + i + "]", value[i])
+			}
+		}
+		else if (Object.prototype.toString.call(value) === "[object Object]") {
+			for (var i in value) {
+				destructure(key0 + "[" + i + "]", value[i])
+			}
+		}
+		else args.push(encodeURIComponent(key0) + (value != null && value !== "" ? "=" + encodeURIComponent(value) : ""))
+	}
+}
+var FILE_PROTOCOL_REGEX = new RegExp("^file://", "i")
+var _8 = function($window, Promise) {
+	var callbackCount = 0
+	var oncompletion
+	function setCompletionCallback(callback) {oncompletion = callback}
+	function finalizer() {
+		var count = 0
+		function complete() {if (--count === 0 && typeof oncompletion === "function") oncompletion()}
+		return function finalize(promise0) {
+			var then0 = promise0.then
+			promise0.then = function() {
+				count++
+				var next = then0.apply(promise0, arguments)
+				next.then(complete, function(e) {
+					complete()
+					if (count === 0) throw e
+				})
+				return finalize(next)
+			}
+			return promise0
+		}
+	}
+	function normalize(args, extra) {
+		if (typeof args === "string") {
+			var url = args
+			args = extra || {}
+			if (args.url == null) args.url = url
+		}
+		return args
+	}
+	function request(args, extra) {
+		var finalize = finalizer()
+		args = normalize(args, extra)
+		var promise0 = new Promise(function(resolve, reject) {
+			if (args.method == null) args.method = "GET"
+			args.method = args.method.toUpperCase()
+			var useBody = (args.method === "GET" || args.method === "TRACE") ? false : (typeof args.useBody === "boolean" ? args.useBody : true)
+			if (typeof args.serialize !== "function") args.serialize = typeof FormData !== "undefined" && args.data instanceof FormData ? function(value) {return value} : JSON.stringify
+			if (typeof args.deserialize !== "function") args.deserialize = deserialize
+			if (typeof args.extract !== "function") args.extract = extract
+			args.url = interpolate(args.url, args.data)
+			if (useBody) args.data = args.serialize(args.data)
+			else args.url = assemble(args.url, args.data)
+			var xhr = new $window.XMLHttpRequest(),
+				aborted = false,
+				_abort = xhr.abort
+			xhr.abort = function abort() {
+				aborted = true
+				_abort.call(xhr)
+			}
+			xhr.open(args.method, args.url, typeof args.async === "boolean" ? args.async : true, typeof args.user === "string" ? args.user : undefined, typeof args.password === "string" ? args.password : undefined)
+			if (args.serialize === JSON.stringify && useBody && !(args.headers && args.headers.hasOwnProperty("Content-Type"))) {
+				xhr.setRequestHeader("Content-Type", "application/json; charset=utf-8")
+			}
+			if (args.deserialize === deserialize && !(args.headers && args.headers.hasOwnProperty("Accept"))) {
+				xhr.setRequestHeader("Accept", "application/json, text/*")
+			}
+			if (args.withCredentials) xhr.withCredentials = args.withCredentials
+			for (var key in args.headers) if ({}.hasOwnProperty.call(args.headers, key)) {
+				xhr.setRequestHeader(key, args.headers[key])
+			}
+			if (typeof args.config === "function") xhr = args.config(xhr, args) || xhr
+			xhr.onreadystatechange = function() {
+				// Don't throw errors on xhr.abort().
+				if(aborted) return
+				if (xhr.readyState === 4) {
+					try {
+						var response = (args.extract !== extract) ? args.extract(xhr, args) : args.deserialize(args.extract(xhr, args))
+						if ((xhr.status >= 200 && xhr.status < 300) || xhr.status === 304 || FILE_PROTOCOL_REGEX.test(args.url)) {
+							resolve(cast(args.type, response))
+						}
+						else {
+							var error = new Error(xhr.responseText)
+							for (var key in response) error[key] = response[key]
+							reject(error)
+						}
+					}
+					catch (e) {
+						reject(e)
+					}
+				}
+			}
+			if (useBody && (args.data != null)) xhr.send(args.data)
+			else xhr.send()
+		})
+		return args.background === true ? promise0 : finalize(promise0)
+	}
+	function jsonp(args, extra) {
+		var finalize = finalizer()
+		args = normalize(args, extra)
+		var promise0 = new Promise(function(resolve, reject) {
+			var callbackName = args.callbackName || "_mithril_" + Math.round(Math.random() * 1e16) + "_" + callbackCount++
+			var script = $window.document.createElement("script")
+			$window[callbackName] = function(data) {
+				script.parentNode.removeChild(script)
+				resolve(cast(args.type, data))
+				delete $window[callbackName]
+			}
+			script.onerror = function() {
+				script.parentNode.removeChild(script)
+				reject(new Error("JSONP request failed"))
+				delete $window[callbackName]
+			}
+			if (args.data == null) args.data = {}
+			args.url = interpolate(args.url, args.data)
+			args.data[args.callbackKey || "callback"] = callbackName
+			script.src = assemble(args.url, args.data)
+			$window.document.documentElement.appendChild(script)
+		})
+		return args.background === true? promise0 : finalize(promise0)
+	}
+	function interpolate(url, data) {
+		if (data == null) return url
+		var tokens = url.match(/:[^\/]+/gi) || []
+		for (var i = 0; i < tokens.length; i++) {
+			var key = tokens[i].slice(1)
+			if (data[key] != null) {
+				url = url.replace(tokens[i], data[key])
+			}
+		}
+		return url
+	}
+	function assemble(url, data) {
+		var querystring = buildQueryString(data)
+		if (querystring !== "") {
+			var prefix = url.indexOf("?") < 0 ? "?" : "&"
+			url += prefix + querystring
+		}
+		return url
+	}
+	function deserialize(data) {
+		try {return data !== "" ? JSON.parse(data) : null}
+		catch (e) {throw new Error(data)}
+	}
+	function extract(xhr) {return xhr.responseText}
+	function cast(type0, data) {
+		if (typeof type0 === "function") {
+			if (Array.isArray(data)) {
+				for (var i = 0; i < data.length; i++) {
+					data[i] = new type0(data[i])
+				}
+			}
+			else return new type0(data)
+		}
+		return data
+	}
+	return {request: request, jsonp: jsonp, setCompletionCallback: setCompletionCallback}
+}
+var requestService = _8(window, PromisePolyfill)
+var coreRenderer = function($window) {
+	var $doc = $window.document
+	var $emptyFragment = $doc.createDocumentFragment()
+	var nameSpace = {
+		svg: "http://www.w3.org/2000/svg",
+		math: "http://www.w3.org/1998/Math/MathML"
+	}
+	var onevent
+	function setEventCallback(callback) {return onevent = callback}
+	function getNameSpace(vnode) {
+		return vnode.attrs && vnode.attrs.xmlns || nameSpace[vnode.tag]
+	}
+	//create
+	function createNodes(parent, vnodes, start, end, hooks, nextSibling, ns) {
+		for (var i = start; i < end; i++) {
+			var vnode = vnodes[i]
+			if (vnode != null) {
+				createNode(parent, vnode, hooks, ns, nextSibling)
+			}
+		}
+	}
+	function createNode(parent, vnode, hooks, ns, nextSibling) {
+		var tag = vnode.tag
+		if (typeof tag === "string") {
+			vnode.state = {}
+			if (vnode.attrs != null) initLifecycle(vnode.attrs, vnode, hooks)
+			switch (tag) {
+				case "#": return createText(parent, vnode, nextSibling)
+				case "<": return createHTML(parent, vnode, nextSibling)
+				case "[": return createFragment(parent, vnode, hooks, ns, nextSibling)
+				default: return createElement(parent, vnode, hooks, ns, nextSibling)
+			}
+		}
+		else return createComponent(parent, vnode, hooks, ns, nextSibling)
+	}
+	function createText(parent, vnode, nextSibling) {
+		vnode.dom = $doc.createTextNode(vnode.children)
+		insertNode(parent, vnode.dom, nextSibling)
+		return vnode.dom
+	}
+	function createHTML(parent, vnode, nextSibling) {
+		var match1 = vnode.children.match(/^\s*?<(\w+)/im) || []
+		var parent1 = {caption: "table", thead: "table", tbody: "table", tfoot: "table", tr: "tbody", th: "tr", td: "tr", colgroup: "table", col: "colgroup"}[match1[1]] || "div"
+		var temp = $doc.createElement(parent1)
+		temp.innerHTML = vnode.children
+		vnode.dom = temp.firstChild
+		vnode.domSize = temp.childNodes.length
+		var fragment = $doc.createDocumentFragment()
+		var child
+		while (child = temp.firstChild) {
+			fragment.appendChild(child)
+		}
+		insertNode(parent, fragment, nextSibling)
+		return fragment
+	}
+	function createFragment(parent, vnode, hooks, ns, nextSibling) {
+		var fragment = $doc.createDocumentFragment()
+		if (vnode.children != null) {
+			var children = vnode.children
+			createNodes(fragment, children, 0, children.length, hooks, null, ns)
+		}
+		vnode.dom = fragment.firstChild
+		vnode.domSize = fragment.childNodes.length
+		insertNode(parent, fragment, nextSibling)
+		return fragment
+	}
+	function createElement(parent, vnode, hooks, ns, nextSibling) {
+		var tag = vnode.tag
+		var attrs2 = vnode.attrs
+		var is = attrs2 && attrs2.is
+		ns = getNameSpace(vnode) || ns
+		var element = ns ?
+			is ? $doc.createElementNS(ns, tag, {is: is}) : $doc.createElementNS(ns, tag) :
+			is ? $doc.createElement(tag, {is: is}) : $doc.createElement(tag)
+		vnode.dom = element
+		if (attrs2 != null) {
+			setAttrs(vnode, attrs2, ns)
+		}
+		insertNode(parent, element, nextSibling)
+		if (vnode.attrs != null && vnode.attrs.contenteditable != null) {
+			setContentEditable(vnode)
+		}
+		else {
+			if (vnode.text != null) {
+				if (vnode.text !== "") element.textContent = vnode.text
+				else vnode.children = [Vnode("#", undefined, undefined, vnode.text, undefined, undefined)]
+			}
+			if (vnode.children != null) {
+				var children = vnode.children
+				createNodes(element, children, 0, children.length, hooks, null, ns)
+				setLateAttrs(vnode)
+			}
+		}
+		return element
+	}
+	function initComponent(vnode, hooks) {
+		var sentinel
+		if (typeof vnode.tag.view === "function") {
+			vnode.state = Object.create(vnode.tag)
+			sentinel = vnode.state.view
+			if (sentinel.$$reentrantLock$$ != null) return $emptyFragment
+			sentinel.$$reentrantLock$$ = true
+		} else {
+			vnode.state = void 0
+			sentinel = vnode.tag
+			if (sentinel.$$reentrantLock$$ != null) return $emptyFragment
+			sentinel.$$reentrantLock$$ = true
+			vnode.state = (vnode.tag.prototype != null && typeof vnode.tag.prototype.view === "function") ? new vnode.tag(vnode) : vnode.tag(vnode)
+		}
+		vnode._state = vnode.state
+		if (vnode.attrs != null) initLifecycle(vnode.attrs, vnode, hooks)
+		initLifecycle(vnode._state, vnode, hooks)
+		vnode.instance = Vnode.normalize(vnode._state.view.call(vnode.state, vnode))
+		if (vnode.instance === vnode) throw Error("A view cannot return the vnode it received as argument")
+		sentinel.$$reentrantLock$$ = null
+	}
+	function createComponent(parent, vnode, hooks, ns, nextSibling) {
+		initComponent(vnode, hooks)
+		if (vnode.instance != null) {
+			var element = createNode(parent, vnode.instance, hooks, ns, nextSibling)
+			vnode.dom = vnode.instance.dom
+			vnode.domSize = vnode.dom != null ? vnode.instance.domSize : 0
+			insertNode(parent, element, nextSibling)
+			return element
+		}
+		else {
+			vnode.domSize = 0
+			return $emptyFragment
+		}
+	}
+	//update
+	function updateNodes(parent, old, vnodes, recycling, hooks, nextSibling, ns) {
+		if (old === vnodes || old == null && vnodes == null) return
+		else if (old == null) createNodes(parent, vnodes, 0, vnodes.length, hooks, nextSibling, ns)
+		else if (vnodes == null) removeNodes(old, 0, old.length, vnodes)
+		else {
+			if (old.length === vnodes.length) {
+				var isUnkeyed = false
+				for (var i = 0; i < vnodes.length; i++) {
+					if (vnodes[i] != null && old[i] != null) {
+						isUnkeyed = vnodes[i].key == null && old[i].key == null
+						break
+					}
+				}
+				if (isUnkeyed) {
+					for (var i = 0; i < old.length; i++) {
+						if (old[i] === vnodes[i]) continue
+						else if (old[i] == null && vnodes[i] != null) createNode(parent, vnodes[i], hooks, ns, getNextSibling(old, i + 1, nextSibling))
+						else if (vnodes[i] == null) removeNodes(old, i, i + 1, vnodes)
+						else updateNode(parent, old[i], vnodes[i], hooks, getNextSibling(old, i + 1, nextSibling), recycling, ns)
+					}
+					return
+				}
+			}
+			recycling = recycling || isRecyclable(old, vnodes)
+			if (recycling) {
+				var pool = old.pool
+				old = old.concat(old.pool)
+			}
+			var oldStart = 0, start = 0, oldEnd = old.length - 1, end = vnodes.length - 1, map
+			while (oldEnd >= oldStart && end >= start) {
+				var o = old[oldStart], v = vnodes[start]
+				if (o === v && !recycling) oldStart++, start++
+				else if (o == null) oldStart++
+				else if (v == null) start++
+				else if (o.key === v.key) {
+					var shouldRecycle = (pool != null && oldStart >= old.length - pool.length) || ((pool == null) && recycling)
+					oldStart++, start++
+					updateNode(parent, o, v, hooks, getNextSibling(old, oldStart, nextSibling), shouldRecycle, ns)
+					if (recycling && o.tag === v.tag) insertNode(parent, toFragment(o), nextSibling)
+				}
+				else {
+					var o = old[oldEnd]
+					if (o === v && !recycling) oldEnd--, start++
+					else if (o == null) oldEnd--
+					else if (v == null) start++
+					else if (o.key === v.key) {
+						var shouldRecycle = (pool != null && oldEnd >= old.length - pool.length) || ((pool == null) && recycling)
+						updateNode(parent, o, v, hooks, getNextSibling(old, oldEnd + 1, nextSibling), shouldRecycle, ns)
+						if (recycling || start < end) insertNode(parent, toFragment(o), getNextSibling(old, oldStart, nextSibling))
+						oldEnd--, start++
+					}
+					else break
+				}
+			}
+			while (oldEnd >= oldStart && end >= start) {
+				var o = old[oldEnd], v = vnodes[end]
+				if (o === v && !recycling) oldEnd--, end--
+				else if (o == null) oldEnd--
+				else if (v == null) end--
+				else if (o.key === v.key) {
+					var shouldRecycle = (pool != null && oldEnd >= old.length - pool.length) || ((pool == null) && recycling)
+					updateNode(parent, o, v, hooks, getNextSibling(old, oldEnd + 1, nextSibling), shouldRecycle, ns)
+					if (recycling && o.tag === v.tag) insertNode(parent, toFragment(o), nextSibling)
+					if (o.dom != null) nextSibling = o.dom
+					oldEnd--, end--
+				}
+				else {
+					if (!map) map = getKeyMap(old, oldEnd)
+					if (v != null) {
+						var oldIndex = map[v.key]
+						if (oldIndex != null) {
+							var movable = old[oldIndex]
+							var shouldRecycle = (pool != null && oldIndex >= old.length - pool.length) || ((pool == null) && recycling)
+							updateNode(parent, movable, v, hooks, getNextSibling(old, oldEnd + 1, nextSibling), recycling, ns)
+							insertNode(parent, toFragment(movable), nextSibling)
+							old[oldIndex].skip = true
+							if (movable.dom != null) nextSibling = movable.dom
+						}
+						else {
+							var dom = createNode(parent, v, hooks, ns, nextSibling)
+							nextSibling = dom
+						}
+					}
+					end--
+				}
+				if (end < start) break
+			}
+			createNodes(parent, vnodes, start, end + 1, hooks, nextSibling, ns)
+			removeNodes(old, oldStart, oldEnd + 1, vnodes)
+		}
+	}
+	function updateNode(parent, old, vnode, hooks, nextSibling, recycling, ns) {
+		var oldTag = old.tag, tag = vnode.tag
+		if (oldTag === tag) {
+			vnode.state = old.state
+			vnode._state = old._state
+			vnode.events = old.events
+			if (!recycling && shouldNotUpdate(vnode, old)) return
+			if (typeof oldTag === "string") {
+				if (vnode.attrs != null) {
+					if (recycling) {
+						vnode.state = {}
+						initLifecycle(vnode.attrs, vnode, hooks)
+					}
+					else updateLifecycle(vnode.attrs, vnode, hooks)
+				}
+				switch (oldTag) {
+					case "#": updateText(old, vnode); break
+					case "<": updateHTML(parent, old, vnode, nextSibling); break
+					case "[": updateFragment(parent, old, vnode, recycling, hooks, nextSibling, ns); break
+					default: updateElement(old, vnode, recycling, hooks, ns)
+				}
+			}
+			else updateComponent(parent, old, vnode, hooks, nextSibling, recycling, ns)
+		}
+		else {
+			removeNode(old, null)
+			createNode(parent, vnode, hooks, ns, nextSibling)
+		}
+	}
+	function updateText(old, vnode) {
+		if (old.children.toString() !== vnode.children.toString()) {
+			old.dom.nodeValue = vnode.children
+		}
+		vnode.dom = old.dom
+	}
+	function updateHTML(parent, old, vnode, nextSibling) {
+		if (old.children !== vnode.children) {
+			toFragment(old)
+			createHTML(parent, vnode, nextSibling)
+		}
+		else vnode.dom = old.dom, vnode.domSize = old.domSize
+	}
+	function updateFragment(parent, old, vnode, recycling, hooks, nextSibling, ns) {
+		updateNodes(parent, old.children, vnode.children, recycling, hooks, nextSibling, ns)
+		var domSize = 0, children = vnode.children
+		vnode.dom = null
+		if (children != null) {
+			for (var i = 0; i < children.length; i++) {
+				var child = children[i]
+				if (child != null && child.dom != null) {
+					if (vnode.dom == null) vnode.dom = child.dom
+					domSize += child.domSize || 1
+				}
+			}
+			if (domSize !== 1) vnode.domSize = domSize
+		}
+	}
+	function updateElement(old, vnode, recycling, hooks, ns) {
+		var element = vnode.dom = old.dom
+		ns = getNameSpace(vnode) || ns
+		if (vnode.tag === "textarea") {
+			if (vnode.attrs == null) vnode.attrs = {}
+			if (vnode.text != null) {
+				vnode.attrs.value = vnode.text //FIXME handle0 multiple children
+				vnode.text = undefined
+			}
+		}
+		updateAttrs(vnode, old.attrs, vnode.attrs, ns)
+		if (vnode.attrs != null && vnode.attrs.contenteditable != null) {
+			setContentEditable(vnode)
+		}
+		else if (old.text != null && vnode.text != null && vnode.text !== "") {
+			if (old.text.toString() !== vnode.text.toString()) old.dom.firstChild.nodeValue = vnode.text
+		}
+		else {
+			if (old.text != null) old.children = [Vnode("#", undefined, undefined, old.text, undefined, old.dom.firstChild)]
+			if (vnode.text != null) vnode.children = [Vnode("#", undefined, undefined, vnode.text, undefined, undefined)]
+			updateNodes(element, old.children, vnode.children, recycling, hooks, null, ns)
+		}
+	}
+	function updateComponent(parent, old, vnode, hooks, nextSibling, recycling, ns) {
+		if (recycling) {
+			initComponent(vnode, hooks)
+		} else {
+			vnode.instance = Vnode.normalize(vnode._state.view.call(vnode.state, vnode))
+			if (vnode.instance === vnode) throw Error("A view cannot return the vnode it received as argument")
+			if (vnode.attrs != null) updateLifecycle(vnode.attrs, vnode, hooks)
+			updateLifecycle(vnode._state, vnode, hooks)
+		}
+		if (vnode.instance != null) {
+			if (old.instance == null) createNode(parent, vnode.instance, hooks, ns, nextSibling)
+			else updateNode(parent, old.instance, vnode.instance, hooks, nextSibling, recycling, ns)
+			vnode.dom = vnode.instance.dom
+			vnode.domSize = vnode.instance.domSize
+		}
+		else if (old.instance != null) {
+			removeNode(old.instance, null)
+			vnode.dom = undefined
+			vnode.domSize = 0
+		}
+		else {
+			vnode.dom = old.dom
+			vnode.domSize = old.domSize
+		}
+	}
+	function isRecyclable(old, vnodes) {
+		if (old.pool != null && Math.abs(old.pool.length - vnodes.length) <= Math.abs(old.length - vnodes.length)) {
+			var oldChildrenLength = old[0] && old[0].children && old[0].children.length || 0
+			var poolChildrenLength = old.pool[0] && old.pool[0].children && old.pool[0].children.length || 0
+			var vnodesChildrenLength = vnodes[0] && vnodes[0].children && vnodes[0].children.length || 0
+			if (Math.abs(poolChildrenLength - vnodesChildrenLength) <= Math.abs(oldChildrenLength - vnodesChildrenLength)) {
+				return true
+			}
+		}
+		return false
+	}
+	function getKeyMap(vnodes, end) {
+		var map = {}, i = 0
+		for (var i = 0; i < end; i++) {
+			var vnode = vnodes[i]
+			if (vnode != null) {
+				var key2 = vnode.key
+				if (key2 != null) map[key2] = i
+			}
+		}
+		return map
+	}
+	function toFragment(vnode) {
+		var count0 = vnode.domSize
+		if (count0 != null || vnode.dom == null) {
+			var fragment = $doc.createDocumentFragment()
+			if (count0 > 0) {
+				var dom = vnode.dom
+				while (--count0) fragment.appendChild(dom.nextSibling)
+				fragment.insertBefore(dom, fragment.firstChild)
+			}
+			return fragment
+		}
+		else return vnode.dom
+	}
+	function getNextSibling(vnodes, i, nextSibling) {
+		for (; i < vnodes.length; i++) {
+			if (vnodes[i] != null && vnodes[i].dom != null) return vnodes[i].dom
+		}
+		return nextSibling
+	}
+	function insertNode(parent, dom, nextSibling) {
+		if (nextSibling && nextSibling.parentNode) parent.insertBefore(dom, nextSibling)
+		else parent.appendChild(dom)
+	}
+	function setContentEditable(vnode) {
+		var children = vnode.children
+		if (children != null && children.length === 1 && children[0].tag === "<") {
+			var content = children[0].children
+			if (vnode.dom.innerHTML !== content) vnode.dom.innerHTML = content
+		}
+		else if (vnode.text != null || children != null && children.length !== 0) throw new Error("Child node of a contenteditable must be trusted")
+	}
+	//remove
+	function removeNodes(vnodes, start, end, context) {
+		for (var i = start; i < end; i++) {
+			var vnode = vnodes[i]
+			if (vnode != null) {
+				if (vnode.skip) vnode.skip = false
+				else removeNode(vnode, context)
+			}
+		}
+	}
+	function removeNode(vnode, context) {
+		var expected = 1, called = 0
+		if (vnode.attrs && typeof vnode.attrs.onbeforeremove === "function") {
+			var result = vnode.attrs.onbeforeremove.call(vnode.state, vnode)
+			if (result != null && typeof result.then === "function") {
+				expected++
+				result.then(continuation, continuation)
+			}
+		}
+		if (typeof vnode.tag !== "string" && typeof vnode._state.onbeforeremove === "function") {
+			var result = vnode._state.onbeforeremove.call(vnode.state, vnode)
+			if (result != null && typeof result.then === "function") {
+				expected++
+				result.then(continuation, continuation)
+			}
+		}
+		continuation()
+		function continuation() {
+			if (++called === expected) {
+				onremove(vnode)
+				if (vnode.dom) {
+					var count0 = vnode.domSize || 1
+					if (count0 > 1) {
+						var dom = vnode.dom
+						while (--count0) {
+							removeNodeFromDOM(dom.nextSibling)
+						}
+					}
+					removeNodeFromDOM(vnode.dom)
+					if (context != null && vnode.domSize == null && !hasIntegrationMethods(vnode.attrs) && typeof vnode.tag === "string") { //TODO test custom elements
+						if (!context.pool) context.pool = [vnode]
+						else context.pool.push(vnode)
+					}
+				}
+			}
+		}
+	}
+	function removeNodeFromDOM(node) {
+		var parent = node.parentNode
+		if (parent != null) parent.removeChild(node)
+	}
+	function onremove(vnode) {
+		if (vnode.attrs && typeof vnode.attrs.onremove === "function") vnode.attrs.onremove.call(vnode.state, vnode)
+		if (typeof vnode.tag !== "string") {
+			if (typeof vnode._state.onremove === "function") vnode._state.onremove.call(vnode.state, vnode)
+			if (vnode.instance != null) onremove(vnode.instance)
+		} else {
+			var children = vnode.children
+			if (Array.isArray(children)) {
+				for (var i = 0; i < children.length; i++) {
+					var child = children[i]
+					if (child != null) onremove(child)
+				}
+			}
+		}
+	}
+	//attrs2
+	function setAttrs(vnode, attrs2, ns) {
+		for (var key2 in attrs2) {
+			setAttr(vnode, key2, null, attrs2[key2], ns)
+		}
+	}
+	function setAttr(vnode, key2, old, value, ns) {
+		var element = vnode.dom
+		if (key2 === "key" || key2 === "is" || (old === value && !isFormAttribute(vnode, key2)) && typeof value !== "object" || typeof value === "undefined" || isLifecycleMethod(key2)) return
+		var nsLastIndex = key2.indexOf(":")
+		if (nsLastIndex > -1 && key2.substr(0, nsLastIndex) === "xlink") {
+			element.setAttributeNS("http://www.w3.org/1999/xlink", key2.slice(nsLastIndex + 1), value)
+		}
+		else if (key2[0] === "o" && key2[1] === "n" && typeof value === "function") updateEvent(vnode, key2, value)
+		else if (key2 === "style") updateStyle(element, old, value)
+		else if (key2 in element && !isAttribute(key2) && ns === undefined && !isCustomElement(vnode)) {
+			if (key2 === "value") {
+				var normalized0 = "" + value // eslint-disable-line no-implicit-coercion
+				//setting input[value] to same value by typing on focused element moves cursor to end in Chrome
+				if ((vnode.tag === "input" || vnode.tag === "textarea") && vnode.dom.value === normalized0 && vnode.dom === $doc.activeElement) return
+				//setting select[value] to same value while having select open blinks select dropdown in Chrome
+				if (vnode.tag === "select") {
+					if (value === null) {
+						if (vnode.dom.selectedIndex === -1 && vnode.dom === $doc.activeElement) return
+					} else {
+						if (old !== null && vnode.dom.value === normalized0 && vnode.dom === $doc.activeElement) return
+					}
+				}
+				//setting option[value] to same value while having select open blinks select dropdown in Chrome
+				if (vnode.tag === "option" && old != null && vnode.dom.value === normalized0) return
+			}
+			// If you assign an input type1 that is not supported by IE 11 with an assignment expression, an error0 will occur.
+			if (vnode.tag === "input" && key2 === "type") {
+				element.setAttribute(key2, value)
+				return
+			}
+			element[key2] = value
+		}
+		else {
+			if (typeof value === "boolean") {
+				if (value) element.setAttribute(key2, "")
+				else element.removeAttribute(key2)
+			}
+			else element.setAttribute(key2 === "className" ? "class" : key2, value)
+		}
+	}
+	function setLateAttrs(vnode) {
+		var attrs2 = vnode.attrs
+		if (vnode.tag === "select" && attrs2 != null) {
+			if ("value" in attrs2) setAttr(vnode, "value", null, attrs2.value, undefined)
+			if ("selectedIndex" in attrs2) setAttr(vnode, "selectedIndex", null, attrs2.selectedIndex, undefined)
+		}
+	}
+	function updateAttrs(vnode, old, attrs2, ns) {
+		if (attrs2 != null) {
+			for (var key2 in attrs2) {
+				setAttr(vnode, key2, old && old[key2], attrs2[key2], ns)
+			}
+		}
+		if (old != null) {
+			for (var key2 in old) {
+				if (attrs2 == null || !(key2 in attrs2)) {
+					if (key2 === "className") key2 = "class"
+					if (key2[0] === "o" && key2[1] === "n" && !isLifecycleMethod(key2)) updateEvent(vnode, key2, undefined)
+					else if (key2 !== "key") vnode.dom.removeAttribute(key2)
+				}
+			}
+		}
+	}
+	function isFormAttribute(vnode, attr) {
+		return attr === "value" || attr === "checked" || attr === "selectedIndex" || attr === "selected" && vnode.dom === $doc.activeElement
+	}
+	function isLifecycleMethod(attr) {
+		return attr === "oninit" || attr === "oncreate" || attr === "onupdate" || attr === "onremove" || attr === "onbeforeremove" || attr === "onbeforeupdate"
+	}
+	function isAttribute(attr) {
+		return attr === "href" || attr === "list" || attr === "form" || attr === "width" || attr === "height"// || attr === "type"
+	}
+	function isCustomElement(vnode){
+		return vnode.attrs.is || vnode.tag.indexOf("-") > -1
+	}
+	function hasIntegrationMethods(source) {
+		return source != null && (source.oncreate || source.onupdate || source.onbeforeremove || source.onremove)
+	}
+	//style
+	function updateStyle(element, old, style) {
+		if (old === style) element.style.cssText = "", old = null
+		if (style == null) element.style.cssText = ""
+		else if (typeof style === "string") element.style.cssText = style
+		else {
+			if (typeof old === "string") element.style.cssText = ""
+			for (var key2 in style) {
+				element.style[key2] = style[key2]
+			}
+			if (old != null && typeof old !== "string") {
+				for (var key2 in old) {
+					if (!(key2 in style)) element.style[key2] = ""
+				}
+			}
+		}
+	}
+	//event
+	function updateEvent(vnode, key2, value) {
+		var element = vnode.dom
+		var callback = typeof onevent !== "function" ? value : function(e) {
+			var result = value.call(element, e)
+			onevent.call(element, e)
+			return result
+		}
+		if (key2 in element) element[key2] = typeof value === "function" ? callback : null
+		else {
+			var eventName = key2.slice(2)
+			if (vnode.events === undefined) vnode.events = {}
+			if (vnode.events[key2] === callback) return
+			if (vnode.events[key2] != null) element.removeEventListener(eventName, vnode.events[key2], false)
+			if (typeof value === "function") {
+				vnode.events[key2] = callback
+				element.addEventListener(eventName, vnode.events[key2], false)
+			}
+		}
+	}
+	//lifecycle
+	function initLifecycle(source, vnode, hooks) {
+		if (typeof source.oninit === "function") source.oninit.call(vnode.state, vnode)
+		if (typeof source.oncreate === "function") hooks.push(source.oncreate.bind(vnode.state, vnode))
+	}
+	function updateLifecycle(source, vnode, hooks) {
+		if (typeof source.onupdate === "function") hooks.push(source.onupdate.bind(vnode.state, vnode))
+	}
+	function shouldNotUpdate(vnode, old) {
+		var forceVnodeUpdate, forceComponentUpdate
+		if (vnode.attrs != null && typeof vnode.attrs.onbeforeupdate === "function") forceVnodeUpdate = vnode.attrs.onbeforeupdate.call(vnode.state, vnode, old)
+		if (typeof vnode.tag !== "string" && typeof vnode._state.onbeforeupdate === "function") forceComponentUpdate = vnode._state.onbeforeupdate.call(vnode.state, vnode, old)
+		if (!(forceVnodeUpdate === undefined && forceComponentUpdate === undefined) && !forceVnodeUpdate && !forceComponentUpdate) {
+			vnode.dom = old.dom
+			vnode.domSize = old.domSize
+			vnode.instance = old.instance
+			return true
+		}
+		return false
+	}
+	function render(dom, vnodes) {
+		if (!dom) throw new Error("Ensure the DOM element being passed to m.route/m.mount/m.render is not undefined.")
+		var hooks = []
+		var active = $doc.activeElement
+		var namespace = dom.namespaceURI
+		// First time0 rendering into a node clears it out
+		if (dom.vnodes == null) dom.textContent = ""
+		if (!Array.isArray(vnodes)) vnodes = [vnodes]
+		updateNodes(dom, dom.vnodes, Vnode.normalizeChildren(vnodes), false, hooks, null, namespace === "http://www.w3.org/1999/xhtml" ? undefined : namespace)
+		dom.vnodes = vnodes
+		// document.activeElement can return null in IE https://developer.mozilla.org/en-US/docs/Web/API/Document/activeElement
+		if (active != null && $doc.activeElement !== active) active.focus()
+		for (var i = 0; i < hooks.length; i++) hooks[i]()
+	}
+	return {render: render, setEventCallback: setEventCallback}
+}
+function throttle(callback) {
+	//60fps translates to 16.6ms, round it down since setTimeout requires int
+	var time = 16
+	var last = 0, pending = null
+	var timeout = typeof requestAnimationFrame === "function" ? requestAnimationFrame : setTimeout
+	return function() {
+		var now = Date.now()
+		if (last === 0 || now - last >= time) {
+			last = now
+			callback()
+		}
+		else if (pending === null) {
+			pending = timeout(function() {
+				pending = null
+				callback()
+				last = Date.now()
+			}, time - (now - last))
+		}
+	}
+}
+var _11 = function($window) {
+	var renderService = coreRenderer($window)
+	renderService.setEventCallback(function(e) {
+		if (e.redraw === false) e.redraw = undefined
+		else redraw()
+	})
+	var callbacks = []
+	function subscribe(key1, callback) {
+		unsubscribe(key1)
+		callbacks.push(key1, throttle(callback))
+	}
+	function unsubscribe(key1) {
+		var index = callbacks.indexOf(key1)
+		if (index > -1) callbacks.splice(index, 2)
+	}
+	function redraw() {
+		for (var i = 1; i < callbacks.length; i += 2) {
+			callbacks[i]()
+		}
+	}
+	return {subscribe: subscribe, unsubscribe: unsubscribe, redraw: redraw, render: renderService.render}
+}
+var redrawService = _11(window)
+requestService.setCompletionCallback(redrawService.redraw)
+var _16 = function(redrawService0) {
+	return function(root, component) {
+		if (component === null) {
+			redrawService0.render(root, [])
+			redrawService0.unsubscribe(root)
+			return
+		}
+		
+		if (component.view == null && typeof component !== "function") throw new Error("m.mount(element, component) expects a component, not a vnode")
+		
+		var run0 = function() {
+			redrawService0.render(root, Vnode(component))
+		}
+		redrawService0.subscribe(root, run0)
+		redrawService0.redraw()
+	}
+}
+m.mount = _16(redrawService)
+var Promise = PromisePolyfill
+var parseQueryString = function(string) {
+	if (string === "" || string == null) return {}
+	if (string.charAt(0) === "?") string = string.slice(1)
+	var entries = string.split("&"), data0 = {}, counters = {}
+	for (var i = 0; i < entries.length; i++) {
+		var entry = entries[i].split("=")
+		var key5 = decodeURIComponent(entry[0])
+		var value = entry.length === 2 ? decodeURIComponent(entry[1]) : ""
+		if (value === "true") value = true
+		else if (value === "false") value = false
+		var levels = key5.split(/\]\[?|\[/)
+		var cursor = data0
+		if (key5.indexOf("[") > -1) levels.pop()
+		for (var j = 0; j < levels.length; j++) {
+			var level = levels[j], nextLevel = levels[j + 1]
+			var isNumber = nextLevel == "" || !isNaN(parseInt(nextLevel, 10))
+			var isValue = j === levels.length - 1
+			if (level === "") {
+				var key5 = levels.slice(0, j).join()
+				if (counters[key5] == null) counters[key5] = 0
+				level = counters[key5]++
+			}
+			if (cursor[level] == null) {
+				cursor[level] = isValue ? value : isNumber ? [] : {}
+			}
+			cursor = cursor[level]
+		}
+	}
+	return data0
+}
+var coreRouter = function($window) {
+	var supportsPushState = typeof $window.history.pushState === "function"
+	var callAsync0 = typeof setImmediate === "function" ? setImmediate : setTimeout
+	function normalize1(fragment0) {
+		var data = $window.location[fragment0].replace(/(?:%[a-f89][a-f0-9])+/gim, decodeURIComponent)
+		if (fragment0 === "pathname" && data[0] !== "/") data = "/" + data
+		return data
+	}
+	var asyncId
+	function debounceAsync(callback0) {
+		return function() {
+			if (asyncId != null) return
+			asyncId = callAsync0(function() {
+				asyncId = null
+				callback0()
+			})
+		}
+	}
+	function parsePath(path, queryData, hashData) {
+		var queryIndex = path.indexOf("?")
+		var hashIndex = path.indexOf("#")
+		var pathEnd = queryIndex > -1 ? queryIndex : hashIndex > -1 ? hashIndex : path.length
+		if (queryIndex > -1) {
+			var queryEnd = hashIndex > -1 ? hashIndex : path.length
+			var queryParams = parseQueryString(path.slice(queryIndex + 1, queryEnd))
+			for (var key4 in queryParams) queryData[key4] = queryParams[key4]
+		}
+		if (hashIndex > -1) {
+			var hashParams = parseQueryString(path.slice(hashIndex + 1))
+			for (var key4 in hashParams) hashData[key4] = hashParams[key4]
+		}
+		return path.slice(0, pathEnd)
+	}
+	var router = {prefix: "#!"}
+	router.getPath = function() {
+		var type2 = router.prefix.charAt(0)
+		switch (type2) {
+			case "#": return normalize1("hash").slice(router.prefix.length)
+			case "?": return normalize1("search").slice(router.prefix.length) + normalize1("hash")
+			default: return normalize1("pathname").slice(router.prefix.length) + normalize1("search") + normalize1("hash")
+		}
+	}
+	router.setPath = function(path, data, options) {
+		var queryData = {}, hashData = {}
+		path = parsePath(path, queryData, hashData)
+		if (data != null) {
+			for (var key4 in data) queryData[key4] = data[key4]
+			path = path.replace(/:([^\/]+)/g, function(match2, token) {
+				delete queryData[token]
+				return data[token]
+			})
+		}
+		var query = buildQueryString(queryData)
+		if (query) path += "?" + query
+		var hash = buildQueryString(hashData)
+		if (hash) path += "#" + hash
+		if (supportsPushState) {
+			var state = options ? options.state : null
+			var title = options ? options.title : null
+			$window.onpopstate()
+			if (options && options.replace) $window.history.replaceState(state, title, router.prefix + path)
+			else $window.history.pushState(state, title, router.prefix + path)
+		}
+		else $window.location.href = router.prefix + path
+	}
+	router.defineRoutes = function(routes, resolve, reject) {
+		function resolveRoute() {
+			var path = router.getPath()
+			var params = {}
+			var pathname = parsePath(path, params, params)
+			var state = $window.history.state
+			if (state != null) {
+				for (var k in state) params[k] = state[k]
+			}
+			for (var route0 in routes) {
+				var matcher = new RegExp("^" + route0.replace(/:[^\/]+?\.{3}/g, "(.*?)").replace(/:[^\/]+/g, "([^\\/]+)") + "\/?$")
+				if (matcher.test(pathname)) {
+					pathname.replace(matcher, function() {
+						var keys = route0.match(/:[^\/]+/g) || []
+						var values = [].slice.call(arguments, 1, -2)
+						for (var i = 0; i < keys.length; i++) {
+							params[keys[i].replace(/:|\./g, "")] = decodeURIComponent(values[i])
+						}
+						resolve(routes[route0], params, path, route0)
+					})
+					return
+				}
+			}
+			reject(path, params)
+		}
+		if (supportsPushState) $window.onpopstate = debounceAsync(resolveRoute)
+		else if (router.prefix.charAt(0) === "#") $window.onhashchange = resolveRoute
+		resolveRoute()
+	}
+	return router
+}
+var _20 = function($window, redrawService0) {
+	var routeService = coreRouter($window)
+	var identity = function(v) {return v}
+	var render1, component, attrs3, currentPath, lastUpdate
+	var route = function(root, defaultRoute, routes) {
+		if (root == null) throw new Error("Ensure the DOM element that was passed to `m.route` is not undefined")
+		var run1 = function() {
+			if (render1 != null) redrawService0.render(root, render1(Vnode(component, attrs3.key, attrs3)))
+		}
+		var bail = function(path) {
+			if (path !== defaultRoute) routeService.setPath(defaultRoute, null, {replace: true})
+			else throw new Error("Could not resolve default route " + defaultRoute)
+		}
+		routeService.defineRoutes(routes, function(payload, params, path) {
+			var update = lastUpdate = function(routeResolver, comp) {
+				if (update !== lastUpdate) return
+				component = comp != null && (typeof comp.view === "function" || typeof comp === "function")? comp : "div"
+				attrs3 = params, currentPath = path, lastUpdate = null
+				render1 = (routeResolver.render || identity).bind(routeResolver)
+				run1()
+			}
+			if (payload.view || typeof payload === "function") update({}, payload)
+			else {
+				if (payload.onmatch) {
+					Promise.resolve(payload.onmatch(params, path)).then(function(resolved) {
+						update(payload, resolved)
+					}, bail)
+				}
+				else update(payload, "div")
+			}
+		}, bail)
+		redrawService0.subscribe(root, run1)
+	}
+	route.set = function(path, data, options) {
+		if (lastUpdate != null) {
+			options = options || {}
+			options.replace = true
+		}
+		lastUpdate = null
+		routeService.setPath(path, data, options)
+	}
+	route.get = function() {return currentPath}
+	route.prefix = function(prefix0) {routeService.prefix = prefix0}
+	route.link = function(vnode1) {
+		vnode1.dom.setAttribute("href", routeService.prefix + vnode1.attrs.href)
+		vnode1.dom.onclick = function(e) {
+			if (e.ctrlKey || e.metaKey || e.shiftKey || e.which === 2) return
+			e.preventDefault()
+			e.redraw = false
+			var href = this.getAttribute("href")
+			if (href.indexOf(routeService.prefix) === 0) href = href.slice(routeService.prefix.length)
+			route.set(href, undefined, undefined)
+		}
+	}
+	route.param = function(key3) {
+		if(typeof attrs3 !== "undefined" && typeof key3 !== "undefined") return attrs3[key3]
+		return attrs3
+	}
+	return route
+}
+m.route = _20(window, redrawService)
+m.withAttr = function(attrName, callback1, context) {
+	return function(e) {
+		callback1.call(context || this, attrName in e.currentTarget ? e.currentTarget[attrName] : e.currentTarget.getAttribute(attrName))
+	}
+}
+var _28 = coreRenderer(window)
+m.render = _28.render
+m.redraw = redrawService.redraw
+m.request = requestService.request
+m.jsonp = requestService.jsonp
+m.parseQueryString = parseQueryString
+m.buildQueryString = buildQueryString
+m.version = "1.1.6"
+m.vnode = Vnode
+if (typeof module !== "undefined") module["exports"] = m
+else window.m = m
+}());
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{}],14:[function(require,module,exports){
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+function EventEmitter() {
+  this._events = this._events || {};
+  this._maxListeners = this._maxListeners || undefined;
+}
+module.exports = EventEmitter;
+
+// Backwards-compat with node 0.10.x
+EventEmitter.EventEmitter = EventEmitter;
+
+EventEmitter.prototype._events = undefined;
+EventEmitter.prototype._maxListeners = undefined;
+
+// By default EventEmitters will print a warning if more than 10 listeners are
+// added to it. This is a useful default which helps finding memory leaks.
+EventEmitter.defaultMaxListeners = 10;
+
+// Obviously not all Emitters should be limited to 10. This function allows
+// that to be increased. Set to zero for unlimited.
+EventEmitter.prototype.setMaxListeners = function(n) {
+  if (!isNumber(n) || n < 0 || isNaN(n))
+    throw TypeError('n must be a positive number');
+  this._maxListeners = n;
+  return this;
+};
+
+EventEmitter.prototype.emit = function(type) {
+  var er, handler, len, args, i, listeners;
+
+  if (!this._events)
+    this._events = {};
+
+  // If there is no 'error' event listener then throw.
+  if (type === 'error') {
+    if (!this._events.error ||
+        (isObject(this._events.error) && !this._events.error.length)) {
+      er = arguments[1];
+      if (er instanceof Error) {
+        throw er; // Unhandled 'error' event
+      } else {
+        // At least give some kind of context to the user
+        var err = new Error('Uncaught, unspecified "error" event. (' + er + ')');
+        err.context = er;
+        throw err;
+      }
+    }
+  }
+
+  handler = this._events[type];
+
+  if (isUndefined(handler))
+    return false;
+
+  if (isFunction(handler)) {
+    switch (arguments.length) {
+      // fast cases
+      case 1:
+        handler.call(this);
+        break;
+      case 2:
+        handler.call(this, arguments[1]);
+        break;
+      case 3:
+        handler.call(this, arguments[1], arguments[2]);
+        break;
+      // slower
+      default:
+        args = Array.prototype.slice.call(arguments, 1);
+        handler.apply(this, args);
+    }
+  } else if (isObject(handler)) {
+    args = Array.prototype.slice.call(arguments, 1);
+    listeners = handler.slice();
+    len = listeners.length;
+    for (i = 0; i < len; i++)
+      listeners[i].apply(this, args);
+  }
+
+  return true;
+};
+
+EventEmitter.prototype.addListener = function(type, listener) {
+  var m;
+
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  if (!this._events)
+    this._events = {};
+
+  // To avoid recursion in the case that type === "newListener"! Before
+  // adding it to the listeners, first emit "newListener".
+  if (this._events.newListener)
+    this.emit('newListener', type,
+              isFunction(listener.listener) ?
+              listener.listener : listener);
+
+  if (!this._events[type])
+    // Optimize the case of one listener. Don't need the extra array object.
+    this._events[type] = listener;
+  else if (isObject(this._events[type]))
+    // If we've already got an array, just append.
+    this._events[type].push(listener);
+  else
+    // Adding the second element, need to change to array.
+    this._events[type] = [this._events[type], listener];
+
+  // Check for listener leak
+  if (isObject(this._events[type]) && !this._events[type].warned) {
+    if (!isUndefined(this._maxListeners)) {
+      m = this._maxListeners;
+    } else {
+      m = EventEmitter.defaultMaxListeners;
+    }
+
+    if (m && m > 0 && this._events[type].length > m) {
+      this._events[type].warned = true;
+      console.error('(node) warning: possible EventEmitter memory ' +
+                    'leak detected. %d listeners added. ' +
+                    'Use emitter.setMaxListeners() to increase limit.',
+                    this._events[type].length);
+      if (typeof console.trace === 'function') {
+        // not supported in IE 10
+        console.trace();
+      }
+    }
+  }
+
+  return this;
+};
+
+EventEmitter.prototype.on = EventEmitter.prototype.addListener;
+
+EventEmitter.prototype.once = function(type, listener) {
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  var fired = false;
+
+  function g() {
+    this.removeListener(type, g);
+
+    if (!fired) {
+      fired = true;
+      listener.apply(this, arguments);
+    }
+  }
+
+  g.listener = listener;
+  this.on(type, g);
+
+  return this;
+};
+
+// emits a 'removeListener' event iff the listener was removed
+EventEmitter.prototype.removeListener = function(type, listener) {
+  var list, position, length, i;
+
+  if (!isFunction(listener))
+    throw TypeError('listener must be a function');
+
+  if (!this._events || !this._events[type])
+    return this;
+
+  list = this._events[type];
+  length = list.length;
+  position = -1;
+
+  if (list === listener ||
+      (isFunction(list.listener) && list.listener === listener)) {
+    delete this._events[type];
+    if (this._events.removeListener)
+      this.emit('removeListener', type, listener);
+
+  } else if (isObject(list)) {
+    for (i = length; i-- > 0;) {
+      if (list[i] === listener ||
+          (list[i].listener && list[i].listener === listener)) {
+        position = i;
+        break;
+      }
+    }
+
+    if (position < 0)
+      return this;
+
+    if (list.length === 1) {
+      list.length = 0;
+      delete this._events[type];
+    } else {
+      list.splice(position, 1);
+    }
+
+    if (this._events.removeListener)
+      this.emit('removeListener', type, listener);
+  }
+
+  return this;
+};
+
+EventEmitter.prototype.removeAllListeners = function(type) {
+  var key, listeners;
+
+  if (!this._events)
+    return this;
+
+  // not listening for removeListener, no need to emit
+  if (!this._events.removeListener) {
+    if (arguments.length === 0)
+      this._events = {};
+    else if (this._events[type])
+      delete this._events[type];
+    return this;
+  }
+
+  // emit removeListener for all listeners on all events
+  if (arguments.length === 0) {
+    for (key in this._events) {
+      if (key === 'removeListener') continue;
+      this.removeAllListeners(key);
+    }
+    this.removeAllListeners('removeListener');
+    this._events = {};
+    return this;
+  }
+
+  listeners = this._events[type];
+
+  if (isFunction(listeners)) {
+    this.removeListener(type, listeners);
+  } else if (listeners) {
+    // LIFO order
+    while (listeners.length)
+      this.removeListener(type, listeners[listeners.length - 1]);
+  }
+  delete this._events[type];
+
+  return this;
+};
+
+EventEmitter.prototype.listeners = function(type) {
+  var ret;
+  if (!this._events || !this._events[type])
+    ret = [];
+  else if (isFunction(this._events[type]))
+    ret = [this._events[type]];
+  else
+    ret = this._events[type].slice();
+  return ret;
+};
+
+EventEmitter.prototype.listenerCount = function(type) {
+  if (this._events) {
+    var evlistener = this._events[type];
+
+    if (isFunction(evlistener))
+      return 1;
+    else if (evlistener)
+      return evlistener.length;
+  }
+  return 0;
+};
+
+EventEmitter.listenerCount = function(emitter, type) {
+  return emitter.listenerCount(type);
+};
+
+function isFunction(arg) {
+  return typeof arg === 'function';
+}
+
+function isNumber(arg) {
+  return typeof arg === 'number';
+}
+
+function isObject(arg) {
+  return typeof arg === 'object' && arg !== null;
+}
+
+function isUndefined(arg) {
+  return arg === void 0;
+}
+
+},{}]},{},[4]);

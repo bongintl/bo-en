@@ -16,8 +16,16 @@ var translate = (cellSize, [x, y]) =>
 
 var popSymbol = (cellSize, position) => {
   const img = document.createElement("img");
-  img.classList.add("face");
   img.src = sample(symbols);
+  Object.assign(img.style, {
+    width: cellSize[0] + "px",
+    height: cellSize[1] + "px",
+    position: "absolute",
+    pointerEvents: "none",
+    left: 0,
+    top: 0,
+    zIndex: -1,
+  });
   document.body.appendChild(img);
 
   const pos = [position[0] * cellSize[0], position[1] * cellSize[1]];
@@ -52,9 +60,7 @@ var popSymbol = (cellSize, position) => {
 
 module.exports = (state, emitter) => ({
   oncreate: () => {
-    console.log("init");
     emitter.on(state.events.NOTE_PLAYED, position => {
-      console.log(position);
       popSymbol(state.cellSize, position);
     });
   },
@@ -67,7 +73,7 @@ module.exports = (state, emitter) => ({
       notes,
       curves,
       cursor,
-      art,
+      face,
       now,
       beatDuration,
     } = state;
@@ -118,12 +124,14 @@ module.exports = (state, emitter) => ({
             transform: translate(cellSize, position),
           };
           return m("div", { key, style }, m.trust(html));
-        })
-      // m('.face', { style: {
-      // 	width: cellSize[ 0 ] + 'px',
-      // 	height: cellSize[ 1 ] + 'px',
-      // 	transform: translate( face )
-      // }})
+        }),
+      m(".face", {
+        style: {
+          width: cellSize[0] + "px",
+          height: cellSize[1] + "px",
+          transform: translate(cellSize, face),
+        },
+      })
       // art.map(({ position, src, key }) => m('img.face', {
       //   key,
       //   src,

@@ -5,7 +5,7 @@ var html = Array.from(el.children).map(node => node.outerHTML);
 var bpm = Number(el.dataset.bpm);
 var voice = sample(el.dataset.voices.split(","));
 
-const symbols = Array(19)
+const symbols = Array(38)
   .fill(0)
   .map((_, i) => `./img/art${i + 1}.svg`);
 
